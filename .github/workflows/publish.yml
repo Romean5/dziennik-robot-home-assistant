@@ -18,7 +18,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION="$(awk '/^version:/{gsub(/\"/, \"\", $2); print $2}' config.yaml)"
+          VERSION="$(grep '^version:' config.yaml | head -n 1 | cut -d ':' -f 2 | tr -d ' \"\\r')"
           test -n "$VERSION"
           echo "value=$VERSION" >> "$GITHUB_OUTPUT"
       - uses: docker/setup-buildx-action@v3
