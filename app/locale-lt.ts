@@ -1,0 +1,37 @@
+const lithuanianText: Record<string, string> = {
+    'Akcja': 'Veiksmas', 'Automatycznie': 'Automatiškai', 'Brak zapisanych godzin w tym okresie.': 'Šiuo laikotarpiu darbo valandų nėra.',
+    'Brak zapisanych ulic.': 'Išsaugotų statybviečių nėra.', 'Budowa / ulica': 'Statybvietė / gatvė', 'Czy na pewno chcesz usunąć?': 'Ar tikrai norite ištrinti?',
+    'Data': 'Data', 'Do tygodnia': 'Iki savaitės', 'Dolny blankiet': 'Apatinė forma', 'Dolny raport': 'Apatinė ataskaita',
+    'Domyślna budowa / ulica': 'Numatytoji statybvietė / gatvė', 'Domyślny klient / firma': 'Numatytasis klientas / įmonė',
+    'Dzisiejsza karta pracy': 'Šios dienos darbo kortelė', 'Edytuj blankiet': 'Redaguoti formą', 'Ewidencja godzin': 'Darbo laiko apskaita',
+    'Godziny': 'Valandos', 'Górny blankiet': 'Viršutinė forma', 'Górny raport': 'Viršutinė ataskaita', 'Imię i nazwisko': 'Vardas ir pavardė',
+    'Imię i nazwisko operatora': 'Operatoriaus vardas ir pavardė', 'Kilometry': 'Kilometrai', 'Klient / firma': 'Klientas / įmonė',
+    'Maszyna': 'Mašina', 'Maszyna (opcjonalnie)': 'Mašina (nebūtina)', 'Następny tydzień': 'Kita savaitė',
+    'Nie udało się usunąć ulicy z listy.': 'Nepavyko pašalinti gatvės iš sąrašo.', 'Nie udało się usunąć.': 'Nepavyko ištrinti.',
+    'Nie udało się zapisać na telefonie': 'Nepavyko išsaugoti telefone', 'Nie udało się zapisać wpisu': 'Nepavyko išsaugoti įrašo',
+    'Nie udało się zresetować PIN-u': 'Nepavyko iš naujo nustatyti PIN kodo', 'Nowy PIN (4-8 cyfr)': 'Naujas PIN kodas (4–8 skaitmenys)',
+    'Nowy PIN (4–8 cyfr)': 'Naujas PIN kodas (4–8 skaitmenys)', 'Numer maszyny': 'Mašinos numeris', 'Numer maszyny / tonaż': 'Mašinos numeris / tonažas',
+    'Numer pracownika': 'Darbuotojo numeris', 'Od tygodnia': 'Nuo savaitės', 'Pobierz PDF': 'Atsisiųsti PDF', 'Podgląd PDF': 'PDF peržiūra',
+    'Pokaż oryginał': 'Rodyti originalą', 'Poprzedni tydzień': 'Ankstesnė savaitė',
+    'Połącz się z serwerem, aby usunąć oczekujący wpis.': 'Norėdami ištrinti laukiantį įrašą, prisijunkite prie serverio.',
+    'Przetłumacz na angielski': 'Išversti į anglų kalbą', 'Raport tygodniowy': 'Savaitės ataskaita', 'Resetuj PIN': 'Iš naujo nustatyti PIN kodą',
+    'Rozumiem': 'Supratau', 'Serwer niedostępny. Zmiany nie zostały potwierdzone jako zapisane.': 'Serveris nepasiekiamas. Nepatvirtinta, kad pakeitimai išsaugoti.',
+    'Stałe dane do raportu': 'Nuolatiniai ataskaitos duomenys', 'Tydzień': 'Savaitė', 'Tylko moje': 'Tik mano',
+    'Tylko na tym telefonie': 'Tik šiame telefone', 'Tylko ten telefon · ': 'Tik šiame telefone · ', 'Ustaw nowy PIN': 'Nustatyti naują PIN kodą',
+    'Tłumaczenie niedostępne. Pokazuję oryginał.': 'Vertimas neprieinamas. Rodomas originalas.', 'Tłumaczę…': 'Verčiama…',
+    'Ulica usunięta z listy. Wcześniejsze wpisy zachowano.': 'Gatvė pašalinta iš sąrašo. Ankstesni įrašai išsaugoti.',
+    'Usunięcie usuwa ulicę tylko z podpowiedzi. Wcześniejsze wpisy zostają.': 'Ištrynus gatvė pašalinama tik iš pasiūlymų. Ankstesni įrašai išlieka.',
+    'Usuń': 'Ištrinti', 'Usuń wpis': 'Ištrinti įrašą', 'Użytkownicy zespołu': 'Komandos nariai', 'Widok': 'Rodinys',
+    'Wpis usunięty.': 'Įrašas ištrintas.', 'Wszyscy': 'Visi', 'Wszystkie ulice': 'Visos gatvės', 'Wybierz górny albo dolny raport.': 'Pasirinkite viršutinę arba apatinę ataskaitą.',
+    'Wybierz raport…': 'Pasirinkite ataskaitą…', 'Wyślij': 'Siųsti', 'Zamknij': 'Uždaryti', 'Zapisane ulice': 'Išsaugotos gatvės',
+    'Zapisano ✓': 'Išsaugota ✓', 'Zapisuję…': 'Išsaugoma…', 'Zapisz': 'Išsaugoti', 'Zapisz dane': 'Išsaugoti duomenis',
+    'Zapisz godziny': 'Išsaugoti valandas', 'Zapisz jako': 'Išsaugoti kaip', 'Zapisz nowy PIN': 'Išsaugoti naują PIN kodą',
+    'Zapisz w raporcie': 'Išsaugoti ataskaitoje', 'Zapisz zmiany': 'Išsaugoti pakeitimus', 'Zestawienie okresu': 'Laikotarpio suvestinė',
+    'Zmiana PIN-u': 'PIN kodo keitimas', 'dni': 'dienos', 'dni pracy': 'darbo dienos', 'tyg.': 'sav.',
+    'Zapisano na telefonie — czeka na serwer': 'Išsaugota telefone — laukiama serverio', 'Zapisano tylko na tym telefonie': 'Išsaugota tik šiame telefone',
+    'Zdjęcia czekają na serwer': 'Nuotraukos laukia serverio', 'W chmurze — widoczne dla zespołu': 'Debesyje — matoma komandai',
+};
+
+export function toLithuanian(text: string) {
+    return lithuanianText[text] ?? text;
+}

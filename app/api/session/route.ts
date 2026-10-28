@@ -1,0 +1,1 @@
+import{currentUser,json}from'../_lib';export async function GET(request:Request){const user=await currentUser(request,true);return user?json({user:{...user,mustChangePin:Boolean(user.mustChangePin)}}):json({user:null},401);}

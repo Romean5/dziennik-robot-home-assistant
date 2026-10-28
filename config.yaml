@@ -1,0 +1,19 @@
+name: Dziennik Robot
+version: "0.2.5"
+slug: dziennik_robot_test
+description: Dziennik robót z prywatną bazą danych i zdjęciami na tym serwerze.
+image: "ghcr.io/romean5/dziennik-robot-home-assistant"
+arch:
+  - amd64
+startup: application
+boot: auto
+init: true
+backup: cold
+map:
+  - type: addon_config
+    read_only: true
+    path: /config
+ports:
+  8099/tcp: null
+options: {}
+schema: {}

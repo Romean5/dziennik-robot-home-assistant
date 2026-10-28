@@ -1,0 +1,1 @@
+import{env}from'cloudflare:workers';import{getCookie,json,sessionCookie}from'../_lib';export async function POST(request:Request){const token=getCookie(request,'worklog_session');if(token)await env.DB.prepare('DELETE FROM sessions WHERE token=?').bind(token).run();return json({ok:true},200,{'set-cookie':sessionCookie('',0,request)});}
