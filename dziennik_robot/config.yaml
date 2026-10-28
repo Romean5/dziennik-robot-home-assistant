@@ -1,5 +1,5 @@
 name: Dziennik Robot
-version: "0.2.8"
+version: "0.2.9"
 slug: dziennik_robot_test
 description: Dziennik robót z prywatną bazą danych i zdjęciami na tym serwerze.
 image: "ghcr.io/romean5/dziennik-robot-home-assistant"
@@ -14,6 +14,6 @@ map:
     read_only: true
     path: /config
 ports:
-  8099/tcp: null
+  8099/tcp: 8099
 options: {}
 schema: {}
