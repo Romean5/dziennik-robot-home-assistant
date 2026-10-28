@@ -1,3 +1,8 @@
+# 0.2.7
+
+- Bezpieczne przeniesienie danych między starą i nową instalacją: eksport oraz import działający wyłącznie do świeżej, pustej instalacji.
+- Stara instalacja pozostaje bez zmian, a po imporcie logujesz się dotychczasowym PIN-em.
+
 # 0.2.6
 
 - Manifest dodatku w osobnym katalogu, aby Home Assistant wykrywał aktualizacje z tego repozytorium.

@@ -110,6 +110,30 @@ async function validateDatabaseCollisions(payload: BackupPayload, teamId: string
   return null;
 }
 
+/**
+ * A cross-team restore is allowed only during the first-run migration of a
+ * freshly installed add-on.  This prevents a backup from ever replacing a
+ * working team's data by accident.
+ */
+async function isFreshBootstrap(user: { id: string; teamId: string }) {
+  const [teams, users, projects, entries, photos, current] = await Promise.all([
+    env.DB.prepare('SELECT COUNT(*) AS count FROM teams').first<Row>(),
+    env.DB.prepare('SELECT COUNT(*) AS count FROM users').first<Row>(),
+    env.DB.prepare('SELECT COUNT(*) AS count FROM projects').first<Row>(),
+    env.DB.prepare('SELECT COUNT(*) AS count FROM entries').first<Row>(),
+    env.DB.prepare('SELECT COUNT(*) AS count FROM photos').first<Row>(),
+    env.DB.prepare('SELECT id,team_id AS teamId,role FROM users WHERE id=?').bind(user.id).first<Row>(),
+  ]);
+  return Number(teams?.count ?? 0) === 1
+    && Number(users?.count ?? 0) === 1
+    && Number(projects?.count ?? 0) === 0
+    && Number(entries?.count ?? 0) === 0
+    && Number(photos?.count ?? 0) === 0
+    && current?.id === user.id
+    && current?.teamId === user.teamId
+    && current?.role === 'admin';
+}
+
 async function sameStoredPhoto(key: string, bytes: Uint8Array) {
   const object = await env.FILES.get(key);
   if (!object) return false;
@@ -163,7 +187,7 @@ export async function POST(request: Request) {
   const declaredLength = Number(request.headers.get('content-length') || 0);
   if (declaredLength > MAX_BACKUP_BYTES) return json({ error: 'backup_too_large' }, 413);
 
-  let body: { manifest?: Row; payload?: BackupPayload };
+  let body: { manifest?: Row; payload?: BackupPayload; allowEmptyTargetMigration?: boolean };
   try {
     body = await request.json() as { manifest?: Row; payload?: BackupPayload };
   } catch {
@@ -172,10 +196,12 @@ export async function POST(request: Request) {
   const manifest = body.manifest;
   const payload = body.payload;
   if (!manifest || manifest.format !== 'dziennik-robot-backup' || manifest.schemaVersion !== 1 || !payload) return json({ error: 'invalid_backup' }, 400);
-  if (String(manifest.teamId) !== user.teamId) return json({ error: 'team_mismatch' }, 409);
-  const validationError = validatePayload(payload, user.teamId);
+  const sourceTeamId = String(manifest.teamId);
+  const crossTeamMigration = sourceTeamId !== user.teamId;
+  if (crossTeamMigration && (!body.allowEmptyTargetMigration || !(await isFreshBootstrap(user)))) return json({ error: 'target_not_empty' }, 409);
+  const validationError = validatePayload(payload, sourceTeamId);
   if (validationError) return json({ error: validationError }, validationError === 'backup_too_large' ? 413 : 400);
-  const collisionError = await validateDatabaseCollisions(payload, user.teamId);
+  const collisionError = await validateDatabaseCollisions(payload, sourceTeamId);
   if (collisionError) return json({ error: collisionError }, 409);
   const expectedCounts = counts(payload);
   const declaredCounts = manifest.counts as Row | undefined;
@@ -199,7 +225,16 @@ export async function POST(request: Request) {
       createdKeys.push(String(row.objectKey));
     }
   }
-  const statements = [env.DB.prepare('INSERT OR REPLACE INTO teams(id,name,name_key,created_at) VALUES(?,?,?,?)').bind(team.id, team.name, team.nameKey, team.createdAt)];
+  const statements = crossTeamMigration
+    ? [
+      env.DB.prepare('DELETE FROM photos WHERE team_id=?').bind(user.teamId),
+      env.DB.prepare('DELETE FROM entries WHERE team_id=?').bind(user.teamId),
+      env.DB.prepare('DELETE FROM projects WHERE team_id=?').bind(user.teamId),
+      env.DB.prepare('DELETE FROM users WHERE team_id=?').bind(user.teamId),
+      env.DB.prepare('DELETE FROM teams WHERE id=?').bind(user.teamId),
+    ]
+    : [];
+  statements.push(env.DB.prepare('INSERT OR REPLACE INTO teams(id,name,name_key,created_at) VALUES(?,?,?,?)').bind(team.id, team.name, team.nameKey, team.createdAt));
   for (const row of payload.users) {
     statements.push(env.DB.prepare('INSERT OR REPLACE INTO users(id,team_id,name,name_key,pin_salt,pin_hash,role,status,full_name,default_company,default_project,employee_number,machine,machine_number,created_at,must_change_pin,pin_reset_expires_at,language) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(row.id, row.teamId, row.name, row.nameKey, row.pinSalt, row.pinHash, row.role, row.status, row.fullName ?? '', row.defaultCompany ?? '', row.defaultProject ?? '', row.employeeNumber ?? '', row.machine ?? '', row.machineNumber ?? '', row.createdAt, row.mustChangePin ?? 0, row.pinResetExpiresAt ?? null, row.language ?? 'pl'));
   }
@@ -216,5 +251,5 @@ export async function POST(request: Request) {
     await Promise.all(createdKeys.map((key) => env.FILES.delete(key).catch(() => undefined)));
     return json({ error: 'import_failed' }, 500);
   }
-  return json({ ok: true, imported: expectedCounts, generatedAt: manifest.generatedAt });
+  return json({ ok: true, imported: expectedCounts, generatedAt: manifest.generatedAt, reloginRequired: crossTeamMigration });
 }
