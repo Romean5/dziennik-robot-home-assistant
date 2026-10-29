@@ -1,3 +1,8 @@
+# 0.2.10
+
+- Pola stałych danych raportu pokazują teraz nazwę angielską oraz tłumaczenie w wybranym języku, aby łatwiej dopasować je do blankietu.
+- Usunięto z interfejsu administratora sekcję „Bezpieczne przenoszenie danych”.
+
 # 0.2.7
 
 - Bezpieczne przeniesienie danych między starą i nową instalacją: eksport oraz import działający wyłącznie do świeżej, pustej instalacji.

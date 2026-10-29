@@ -128,6 +128,15 @@ function ownerKey(value: Pick<User, 'id' | 'teamId' | 'name' | 'teamName'>) {
     return value.teamId && value.id ? `${value.teamId}:${value.id}` : `${value.teamName}:${value.name}`;
 }
 
+/**
+ * Stałe pola blankietu są łatwiejsze do rozpoznania, kiedy obok nazwy
+ * użytkownika widoczna jest nazwa angielska. Sam PDF pozostaje bez zmian.
+ */
+function reportFieldLabel(lang: Language, english: string, polish: string, danish: string, lithuanian: string) {
+    const translation = lang === 'da' ? danish : lang === 'lt' ? lithuanian : lang === 'pl' ? polish : english;
+    return translation === english ? english : `${english} / ${translation}`;
+}
+
 function ownerCacheKey(kind: 'entries' | 'projects', value: Pick<User, 'id' | 'teamId' | 'name' | 'teamName'>) {
     return `dziennik-offline-${kind}-${encodeURIComponent(ownerKey(value))}`;
 }
@@ -250,9 +259,6 @@ export default function Home() {
     const [translationErrors, setTranslationErrors] = useState<Record<string, boolean>>({});
     const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
     const [showInstallGuide, setShowInstallGuide] = useState(false);
-    const migrationFileInput = useRef<HTMLInputElement>(null);
-    const [migrationBusy, setMigrationBusy] = useState(false);
-
     const [user, setUser] = useState<User | null>(null), [loading, setLoading] = useState(true), [draftReady, setDraftReady] = useState(false);
 
     const [name, setName] = useState(''), [pin, setPin] = useState(''), [newPin, setNewPin] = useState(''), [authError, setAuthError] = useState(''), [temporaryPin, setTemporaryPin] = useState<{ name: string; pin: string } | null>(null);
@@ -520,44 +526,6 @@ export default function Home() {
         const result = await response.json().catch(() => ({}));
         if (!response.ok || !result.temporaryPin) { setNotice(lang === 'da' ? 'PIN kunne ikke nulstilles' : lang === 'en' ? 'Could not reset the PIN' : lang === 'lt' ? toLithuanian('Nie udało się zresetować PIN-u') : 'Nie udało się zresetować PIN-u'); return; }
         setTemporaryPin({ name: member.name, pin: result.temporaryPin });
-    }
-    async function downloadMigrationBackup() {
-        if (!window.confirm('Pobrać poufną kopię migracyjną? Plik zawiera dane zespołu oraz hashe PIN-ów. Zachowaj go tylko do czasu przeniesienia danych.')) return;
-        setMigrationBusy(true);
-        try {
-            const response = await fetch('/api/admin/backup');
-            if (!response.ok) throw new Error('backup_failed');
-            const backup = await response.json();
-            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `dziennik-robot-migracja-${new Date().toISOString().slice(0, 10)}.json`;
-            link.click();
-            URL.revokeObjectURL(url);
-            setNotice('Kopia migracyjna została pobrana. Nie wysyłaj jej nikomu.');
-        } catch {
-            setNotice('Nie udało się pobrać kopii migracyjnej.');
-        } finally { setMigrationBusy(false); }
-    }
-    async function restoreMigrationBackup(event: ChangeEvent<HTMLInputElement>) {
-        const file = event.target.files?.[0];
-        event.target.value = '';
-        if (!file) return;
-        if (!window.confirm('Czy na pewno chcesz przywrócić tę kopię? Działa to tylko w świeżej, pustej instalacji. Tymczasowe konto tej instalacji zostanie usunięte, a potem zalogujesz się swoim dotychczasowym PIN-em.')) return;
-        setMigrationBusy(true);
-        try {
-            const backup = JSON.parse(await file.text());
-            const response = await fetch('/api/admin/backup', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...backup, allowEmptyTargetMigration: true }) });
-            const result = await response.json().catch(() => ({}));
-            if (!response.ok) throw new Error(String(result.error || 'restore_failed'));
-            setNotice('Dane zostały przeniesione. Za chwilę zaloguj się dotychczasowym PIN-em.');
-            await fetch('/api/logout', { method: 'POST' }).catch(() => undefined);
-            window.setTimeout(() => window.location.reload(), 1200);
-        } catch (error) {
-            const code = error instanceof Error ? error.message : '';
-            setNotice(code === 'target_not_empty' ? 'Nie można przywrócić: ta instalacja nie jest pusta.' : 'Nie udało się przywrócić kopii. Sprawdź wybrany plik.');
-        } finally { setMigrationBusy(false); }
     }
     async function login() { setAuthError('');
  const r = await fetch('/api/auth', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, pin, language: lang }) });
@@ -1111,12 +1079,6 @@ export default function Home() {
 {teamUsers.map(member => <div className="request-row" key={member.id}><strong>{member.name}</strong>{member.role === 'admin' ? <span>{lang === 'da' ? 'administrator' : lang === 'en' ? 'administrator' : lang === 'lt' ? toLithuanian('administrator') : 'administrator'}</span> : <button className="reject" onClick={() => resetMemberPin(member)}>{lang === 'da' ? 'Nulstil PIN' : lang === 'en' ? 'Reset PIN' : lang === 'lt' ? toLithuanian('Resetuj PIN') : 'Resetuj PIN'}</button>}</div>)}
 {temporaryPin && <div className="admin-help" role="status"><strong>{lang === 'da' ? `Midlertidig PIN for ${temporaryPin.name}:` : lang === 'en' ? `Temporary PIN for ${temporaryPin.name}:` : `Tymczasowy PIN dla ${temporaryPin.name}:`} {temporaryPin.pin}</strong><p>{lang === 'da' ? 'Fortæl den til personen inden for 24 timer. Den vises kun nu; næste gang skal personen vælge en ny PIN.' : lang === 'en' ? 'Share it with the person within 24 hours. It is shown only now; they must choose a new PIN at login.' : lang === 'lt' ? toLithuanian('Przekaż go tej osobie w ciągu 24 godzin. Kod jest pokazany tylko teraz; przy logowaniu ustawi własny PIN.') : 'Przekaż go tej osobie w ciągu 24 godzin. Kod jest pokazany tylko teraz; przy logowaniu ustawi własny PIN.'}</p><button className="secondary-button" onClick={() => setTemporaryPin(null)}>{lang === 'da' ? 'Luk' : lang === 'en' ? 'Dismiss' : lang === 'lt' ? toLithuanian('Zamknij') : 'Zamknij'}</button></div>}
 </details>}
-    {user.role === 'admin' && <details className="admin-card no-print">
-<summary>{lang === 'da' ? 'Sikker dataflytning' : lang === 'en' ? 'Secure data migration' : lang === 'lt' ? toLithuanian('Bezpieczne przenoszenie danych') : 'Bezpieczne przenoszenie danych'} <span className="chevron">⌄</span></summary>
-<p className="admin-help">{lang === 'da' ? 'Brug kun dette ved flytning til en ny, tom installation. Den gamle app ændres ikke.' : lang === 'en' ? 'Use this only to move data to a new, empty installation. The old app is not changed.' : lang === 'lt' ? toLithuanian('Użyj tego tylko do przeniesienia danych do nowej, pustej instalacji. Stara aplikacja nie jest zmieniana.') : 'Użyj tego tylko do przeniesienia danych do nowej, pustej instalacji. Stara aplikacja nie jest zmieniana.'}</p>
-<div className="report-actions"><button className="secondary-button" onClick={downloadMigrationBackup} disabled={migrationBusy}>{migrationBusy ? (lang === 'da' ? 'Vent…' : lang === 'en' ? 'Please wait…' : 'Proszę czekać…') : (lang === 'da' ? 'Hent kopi' : lang === 'en' ? 'Download backup' : 'Pobierz kopię')}</button><button className="secondary-button" onClick={() => migrationFileInput.current?.click()} disabled={migrationBusy}>{lang === 'da' ? 'Gendan kopi' : lang === 'en' ? 'Restore backup' : 'Przywróć kopię'}</button></div>
-<input ref={migrationFileInput} type="file" accept="application/json,.json" onChange={restoreMigrationBackup} hidden />
-</details>}
     <details className="entry-card unified-entry no-print">
 <summary>{lang === 'da' ? 'Dagens arbejdskort' : lang === 'en' ? 'Today’s work card' : lang === 'lt' ? toLithuanian('Dzisiejsza karta pracy') : 'Dzisiejsza karta pracy'}<span>⌄</span>
 </summary>
@@ -1126,12 +1088,12 @@ export default function Home() {
 <div className="report-machine-fields">
 <label className="field"><span>{lang === 'da' ? 'Rediger blanket' : lang === 'en' ? 'Edit form' : lang === 'lt' ? toLithuanian('Edytuj blankiet') : 'Edytuj blankiet'}</span><select value={reportHeaderSlot} onChange={e => { const slot = e.target.value as 'upper' | 'lower'; setReportHeaderSlot(slot); setReportSettingsDirty(reportDirtySlots.includes(slot)); setReportSettingsNotice(''); }}><option value="upper">{lang === 'da' ? 'Øverste rapport' : lang === 'en' ? 'Upper report' : lang === 'lt' ? toLithuanian('Górny raport') : 'Górny raport'}</option><option value="lower">{lang === 'da' ? 'Nederste rapport' : lang === 'en' ? 'Lower report' : lang === 'lt' ? toLithuanian('Dolny raport') : 'Dolny raport'}</option></select></label>
 <h3>{reportHeaderSlot === 'upper' ? (lang === 'da' ? 'Øverste blanket' : lang === 'en' ? 'Upper form' : lang === 'lt' ? toLithuanian('Górny blankiet') : 'Górny blankiet') : (lang === 'da' ? 'Nederste blanket' : lang === 'en' ? 'Lower form' : lang === 'lt' ? toLithuanian('Dolny blankiet') : 'Dolny blankiet')}</h3>
-<label className="field"><span>{lang === 'da' ? 'Kunde / firma' : lang === 'en' ? 'Customer / company' : lang === 'lt' ? toLithuanian('Klient / firma') : 'Klient / firma'}</span><input value={reportMachineSettings[reportHeaderFieldKeys.company]} onChange={e => updateReportHeaderField('company', e.target.value)}/></label>
-<label className="field"><span>{lang === 'da' ? 'Arbejdsplads / adresse' : lang === 'en' ? 'Work site / address' : lang === 'lt' ? toLithuanian('Budowa / ulica') : 'Budowa / ulica'}</span><input value={reportMachineSettings[reportHeaderFieldKeys.project]} onChange={e => updateReportHeaderField('project', e.target.value)}/></label>
-<label className="field"><span>{lang === 'da' ? 'Maskinførerens navn' : lang === 'en' ? 'Operator name' : lang === 'lt' ? toLithuanian('Imię i nazwisko operatora') : 'Imię i nazwisko operatora'}</span><input value={reportMachineSettings[reportHeaderFieldKeys.fullName]} onChange={e => updateReportHeaderField('fullName', e.target.value)}/></label>
-<label className="field"><span>{lang === 'da' ? 'Medarbejdernummer' : lang === 'en' ? 'Employee number' : lang === 'lt' ? toLithuanian('Numer pracownika') : 'Numer pracownika'}</span><input value={reportMachineSettings[reportHeaderFieldKeys.employeeNumber]} onChange={e => updateReportHeaderField('employeeNumber', e.target.value)}/></label>
-<label className="field"><span>{lang === 'da' ? 'Maskine' : lang === 'en' ? 'Machine' : lang === 'lt' ? toLithuanian('Maszyna') : 'Maszyna'}</span><input value={reportMachineSettings[reportHeaderFieldKeys.machine]} onChange={e => updateReportHeaderField('machine', e.target.value)}/></label>
-<label className="field"><span>{lang === 'da' ? 'Maskinnummer' : lang === 'en' ? 'Machine number' : lang === 'lt' ? toLithuanian('Numer maszyny / tonaż') : 'Numer maszyny / tonaż'}</span><input value={reportMachineSettings[reportHeaderFieldKeys.machineNumber]} onChange={e => updateReportHeaderField('machineNumber', e.target.value)}/></label>
+<label className="field"><span>{reportFieldLabel(lang, 'Customer / company', 'Klient / firma', 'Kunde / firma', 'Klientas / įmonė')}</span><input value={reportMachineSettings[reportHeaderFieldKeys.company]} onChange={e => updateReportHeaderField('company', e.target.value)}/></label>
+<label className="field"><span>{reportFieldLabel(lang, 'Work site / address', 'Budowa / ulica', 'Arbejdsplads / adresse', 'Statybvietė / adresas')}</span><input value={reportMachineSettings[reportHeaderFieldKeys.project]} onChange={e => updateReportHeaderField('project', e.target.value)}/></label>
+<label className="field"><span>{reportFieldLabel(lang, 'Operator name', 'Imię i nazwisko operatora', 'Maskinførerens navn', 'Mašinos operatoriaus vardas')}</span><input value={reportMachineSettings[reportHeaderFieldKeys.fullName]} onChange={e => updateReportHeaderField('fullName', e.target.value)}/></label>
+<label className="field"><span>{reportFieldLabel(lang, 'Employee number', 'Numer pracownika', 'Medarbejdernummer', 'Darbuotojo numeris')}</span><input value={reportMachineSettings[reportHeaderFieldKeys.employeeNumber]} onChange={e => updateReportHeaderField('employeeNumber', e.target.value)}/></label>
+<label className="field"><span>{reportFieldLabel(lang, 'Machine', 'Maszyna', 'Maskine', 'Mašina')}</span><input value={reportMachineSettings[reportHeaderFieldKeys.machine]} onChange={e => updateReportHeaderField('machine', e.target.value)}/></label>
+<label className="field"><span>{reportFieldLabel(lang, 'Machine number / tonnage', 'Numer maszyny / tonaż', 'Maskinnummer / tonnage', 'Mašinos numeris / tonažas')}</span><input value={reportMachineSettings[reportHeaderFieldKeys.machineNumber]} onChange={e => updateReportHeaderField('machineNumber', e.target.value)}/></label>
 </div>
 <button className={`secondary-button report-settings-save${reportSettingsDirty ? '' : ' report-settings-saved'}`} onClick={saveReportMachineSettings} disabled={!reportSettingsDirty || reportSettingsSaving}>{reportSettingsSaving ? (lang === 'da' ? 'Gemmer…' : lang === 'en' ? 'Saving…' : lang === 'lt' ? toLithuanian('Zapisuję…') : 'Zapisuję…') : reportSettingsDirty ? (lang === 'da' ? 'Gem ændringer' : lang === 'en' ? 'Save changes' : lang === 'lt' ? toLithuanian('Zapisz zmiany') : 'Zapisz zmiany') : (lang === 'da' ? 'Gemt ✓' : lang === 'en' ? 'Saved ✓' : lang === 'lt' ? toLithuanian('Zapisano ✓') : 'Zapisano ✓')}</button>
 {reportSettingsNotice && <p className="report-settings-notice" role="status">{reportSettingsNotice}</p>}
