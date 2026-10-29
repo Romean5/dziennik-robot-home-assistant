@@ -1,3 +1,9 @@
+# 0.2.19
+
+- The installation panel now launches the real Android install prompt when available and otherwise clearly explains why it is unavailable.
+- Android users can open the app directly in Chrome, and all phones have a working system share button for the public link.
+- The instruction explicitly prevents trying to install from the built-in browser of WhatsApp, Messenger or Facebook, where Android does not create a home-screen icon.
+
 # 0.2.18
 
 - Podgląd PDF jest renderowany bezpośrednio w aplikacji przez PDF.js, bez otwierania automatycznej karty `blob:`. Działa także na telefonach, które blokują własny podgląd PDF.

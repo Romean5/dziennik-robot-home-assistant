@@ -265,6 +265,9 @@ export default function Home() {
     const [translationErrors, setTranslationErrors] = useState<Record<string, boolean>>({});
     const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
     const [showInstallGuide, setShowInstallGuide] = useState(false);
+    const [installPlatform, setInstallPlatform] = useState<'android' | 'ios' | 'other'>('other');
+    const [installSecure, setInstallSecure] = useState(true);
+    const [installStatus, setInstallStatus] = useState('');
     const [activePanel, setActivePanel] = useState<'home' | 'card' | 'report' | 'worklog' | 'shared' | 'team' | 'settings'>('home');
     const [user, setUser] = useState<User | null>(null), [loading, setLoading] = useState(true), [draftReady, setDraftReady] = useState(false);
 
@@ -310,6 +313,9 @@ export default function Home() {
     useEffect(() => { document.documentElement.lang = lang === 'lt' ? 'lt' : lang === 'da' ? 'da' : lang === 'en' ? 'en' : 'pl'; }, [lang]);
     useEffect(() => { if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {}); }, []);
     useEffect(() => {
+        const ua = navigator.userAgent || '';
+        setInstallPlatform(/iphone|ipad|ipod/i.test(ua) ? 'ios' : /android/i.test(ua) ? 'android' : 'other');
+        setInstallSecure(window.isSecureContext);
         const standalone = window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
         if (!standalone && localStorage.getItem('dziennik-install-help-seen') !== '1') setShowInstallGuide(true);
         const captureInstallPrompt = (event: Event) => {
@@ -401,7 +407,17 @@ export default function Home() {
     }
 
     async function installApp() {
+        if (!installSecure) {
+            setInstallStatus(lang === 'pl' ? 'Instalacja ikony działa tylko pod adresem HTTPS. Otwórz publiczny link https://dziennik.romean5.pl w zwykłej przeglądarce.' : 'Installation requires the HTTPS version of the application.');
+            setShowInstallGuide(true);
+            return;
+        }
         if (!installPrompt) {
+            setInstallStatus(installPlatform === 'android'
+                ? (lang === 'pl' ? 'Ten telefon nie pokazał jeszcze okna instalacji. Otwórz link bezpośrednio w Chrome albo Samsung Internet — nie wewnątrz WhatsAppa, Messengera ani Facebooka — a potem wybierz „Dodaj do ekranu głównego”.' : 'Open the link directly in Chrome or Samsung Internet, then choose Add to Home screen.')
+                : installPlatform === 'ios'
+                    ? (lang === 'pl' ? 'Na iPhonie ikonę dodaje Safari: Udostępnij → Do ekranu początkowego → Dodaj.' : 'On iPhone, use Safari: Share → Add to Home Screen → Add.')
+                    : (lang === 'pl' ? 'Użyj ikony instalacji przy pasku adresu przeglądarki.' : 'Use the install icon in the browser address bar.'));
             setShowInstallGuide(true);
             return;
         }
@@ -411,6 +427,29 @@ export default function Home() {
         if (choice.outcome === 'accepted') {
             setShowInstallGuide(false);
             localStorage.setItem('dziennik-install-help-seen', '1');
+        } else {
+            setInstallStatus(lang === 'pl' ? 'Instalacja została anulowana. Możesz spróbować ponownie przez menu przeglądarki.' : 'Installation was cancelled. You can try again from the browser menu.');
+            setShowInstallGuide(true);
+        }
+    }
+
+    function openInChrome() {
+        const url = window.location.href.replace(/^https?:\/\//, '');
+        window.location.href = `intent://${url}#Intent;scheme=${window.location.protocol.replace(':', '')};package=com.android.chrome;end`;
+    }
+
+    async function shareInstallLink() {
+        const share = navigator.share;
+        try {
+            if (share) {
+                await share({ title: 'Dziennik Robót', text: 'Otwórz Dziennik Robót w przeglądarce i dodaj ikonę do ekranu głównego.', url: window.location.href });
+                setInstallStatus(lang === 'pl' ? 'Wybrano udostępnienie linku. Aby zainstalować ikonę, otwórz link w Chrome lub Safari, nie w oknie komunikatora.' : 'Open the shared link in Chrome or Safari, not inside a messenger.');
+            } else {
+                await navigator.clipboard.writeText(window.location.href);
+                setInstallStatus(lang === 'pl' ? 'Link został skopiowany. Wklej go i otwórz w Chrome albo Safari.' : 'The link was copied. Open it in Chrome or Safari.');
+            }
+        } catch {
+            setInstallStatus(lang === 'pl' ? 'Udostępnianie zostało anulowane. Możesz skopiować adres z paska przeglądarki i otworzyć go w Chrome albo Safari.' : 'Sharing was cancelled. Copy the address and open it in Chrome or Safari.');
         }
     }
 
@@ -421,12 +460,14 @@ export default function Home() {
 
     function installGuide() {
         return <>
-            <button className="install-help-trigger" type="button" onClick={installApp}>{installPrompt ? (lang === 'lt' ? 'Įdiegti dabar' : lang === 'da' ? 'Installer nu' : lang === 'en' ? 'Install now' : 'Zainstaluj teraz') : (lang === 'lt' ? 'Kaip įdiegti' : lang === 'da' ? 'Sådan installerer du' : lang === 'en' ? 'How to install' : 'Jak zainstalować')}</button>
+            <button className="install-help-trigger" type="button" onClick={installApp}>{installPrompt ? (lang === 'lt' ? 'Įdiegti dabar' : lang === 'da' ? 'Installer nu' : lang === 'en' ? 'Install now' : 'Zainstaluj aplikację') : (lang === 'lt' ? 'Kaip įdiegti' : lang === 'da' ? 'Sådan installerer du' : lang === 'en' ? 'How to install' : 'Dodaj na pulpit')}</button>
             {showInstallGuide && <aside className="install-help-card" role="status">
                 <strong>{lang === 'lt' ? 'Pridėkite Darbo žurnalą prie pradžios ekrano' : lang === 'da' ? 'Føj Arbejdsdagbog til startskærmen' : lang === 'en' ? 'Add Work Log to your home screen' : 'Dodaj Dziennik Robót do ekranu głównego'}</strong>
-                <p>{lang === 'lt' ? 'Android: naršyklės meniu ⋮ → „Įdiegti programą“ arba „Pridėti prie pradžios ekrano“. iPhone: atidarykite nuorodą „Safari“, palieskite „Bendrinti“ → „Įtraukti į pradžios ekraną“ → „Pridėti“. Kompiuteryje ieškokite diegimo piktogramos adreso juostoje arba naršyklės meniu.' : lang === 'da' ? 'Android: browsermenuen ⋮ → „Installer appen“ eller „Føj til startskærmen“. iPhone: åbn linket i Safari, tryk på Del → Føj til hjemmeskærm → Tilføj. På computer: brug installationsikonet i adresselinjen eller browsermenuen.' : lang === 'en' ? 'Android: browser menu ⋮ → “Install app” or “Add to Home screen”. iPhone: open the link in Safari, tap Share → “Add to Home Screen” → Add. On a computer, look for the install icon in the address bar or browser menu.' : 'Android: menu przeglądarki ⋮ → „Zainstaluj aplikację” albo „Dodaj do ekranu głównego”. iPhone: otwórz link w Safari, stuknij Udostępnij → „Do ekranu początkowego” → Dodaj. Na komputerze szukaj ikony instalacji przy pasku adresu albo w menu przeglądarki.'}</p>
+                <p>{installStatus || (lang === 'lt' ? 'Android: naršyklės meniu ⋮ → „Įdiegti programą“ arba „Pridėti prie pradžios ekrano“. iPhone: atidarykite nuorodą „Safari“, palieskite „Bendrinti“ → „Įtraukti į pradžios ekraną“ → „Pridėti“. Kompiuteryje ieškokite diegimo piktogramos adreso juostoje arba naršyklės meniu.' : lang === 'da' ? 'Android: browsermenuen ⋮ → „Installer appen“ eller „Føj til startskærmen“. iPhone: åbn linket i Safari, tryk på Del → Føj til hjemmeskærm → Tilføj. På computer: brug installationsikonet i adresselinjen eller browsermenuen.' : lang === 'en' ? 'Android: browser menu ⋮ → “Install app” or “Add to Home screen”. iPhone: open the link in Safari, tap Share → “Add to Home Screen” → Add. On a computer, look for the install icon in the address bar or browser menu.' : 'Android: kliknij „Zainstaluj aplikację”, gdy telefon pokaże ten przycisk. Jeżeli go nie pokazuje, otwórz link bezpośrednio w Chrome lub Samsung Internet, potem wybierz ⋮ → „Dodaj do ekranu głównego” → „Dodaj”. Na iPhonie otwórz link w Safari i wybierz Udostępnij → „Do ekranu początkowego” → „Dodaj”.')}</p>
                 <div className="install-help-actions">
                     {installPrompt && <button className="secondary-button" type="button" onClick={installApp}>{lang === 'lt' ? 'Įdiegti dabar' : lang === 'da' ? 'Installer nu' : lang === 'en' ? 'Install now' : 'Zainstaluj teraz'}</button>}
+                    {installPlatform === 'android' && <button className="secondary-button" type="button" onClick={openInChrome}>{lang === 'pl' ? 'Otwórz w Chrome' : 'Open in Chrome'}</button>}
+                    <button className="secondary-button" type="button" onClick={shareInstallLink}>{lang === 'pl' ? 'Wyślij link' : 'Share link'}</button>
                     <button className="secondary-button" type="button" onClick={dismissInstallGuide}>{lang === 'lt' ? 'Supratau' : lang === 'da' ? 'Forstået' : lang === 'en' ? 'Got it' : 'Rozumiem'}</button>
                 </div>
             </aside>}
