@@ -1,3 +1,7 @@
+# 0.2.15
+
+- Przycisk instalacji uruchamia teraz systemowe okno instalacji, gdy przeglądarka je udostępnia; w przeciwnym razie nazywa się jasno „Jak zainstalować”. Dodano wymagane przez Androida ikony PNG 192×192 i 512×512.
+
 # 0.2.14
 
 - Konto z rolą administratora jest automatycznie aktywowane przy logowaniu, także w przypadku starszego błędnego wpisu ze statusem „oczekuje”. Zwykli nowi użytkownicy nadal wymagają zatwierdzenia administratora.
