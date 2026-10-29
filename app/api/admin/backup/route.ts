@@ -151,7 +151,7 @@ export async function GET(request: Request) {
     env.DB.prepare('SELECT id,name,name_key AS nameKey,created_at AS createdAt FROM teams WHERE id=?').bind(user.teamId).all(),
     env.DB.prepare('SELECT id,team_id AS teamId,name,name_key AS nameKey,pin_salt AS pinSalt,pin_hash AS pinHash,role,status,full_name AS fullName,default_company AS defaultCompany,default_project AS defaultProject,employee_number AS employeeNumber,machine,machine_number AS machineNumber,created_at AS createdAt,must_change_pin AS mustChangePin,pin_reset_expires_at AS pinResetExpiresAt,language FROM users WHERE team_id=?').bind(user.teamId).all(),
     env.DB.prepare('SELECT id,team_id AS teamId,name,created_at AS createdAt FROM projects WHERE team_id=?').bind(user.teamId).all(),
-    env.DB.prepare('SELECT id,team_id AS teamId,user_id AS userId,entry_type AS entryType,company,project,description,hours,kilometers,report_slot AS reportSlot,work_date AS workDate,latitude,longitude,created_at AS createdAt,source_language AS sourceLanguage FROM entries WHERE team_id=?').bind(user.teamId).all(),
+    env.DB.prepare('SELECT id,team_id AS teamId,user_id AS userId,entry_type AS entryType,company,project,description,hours,kilometers,report_slot AS reportSlot,report_week_key AS reportWeekKey,work_date AS workDate,latitude,longitude,created_at AS createdAt,source_language AS sourceLanguage FROM entries WHERE team_id=?').bind(user.teamId).all(),
     env.DB.prepare('SELECT id,entry_id AS entryId,team_id AS teamId,object_key AS objectKey,content_type AS contentType,created_at AS createdAt FROM photos WHERE team_id=?').bind(user.teamId).all(),
   ]);
 
@@ -242,7 +242,7 @@ export async function POST(request: Request) {
     statements.push(env.DB.prepare('INSERT OR REPLACE INTO projects(id,team_id,name,created_at) VALUES(?,?,?,?)').bind(row.id, row.teamId, row.name, row.createdAt));
   }
   for (const row of payload.entries) {
-    statements.push(env.DB.prepare('INSERT OR REPLACE INTO entries(id,team_id,user_id,entry_type,company,project,description,hours,kilometers,report_slot,work_date,latitude,longitude,created_at,source_language) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(row.id, row.teamId, row.userId, row.entryType, row.company ?? '', row.project ?? '', row.description ?? '', row.hours ?? '0', row.kilometers ?? '0', row.reportSlot ?? 'auto', row.workDate ?? '', row.latitude ?? null, row.longitude ?? null, row.createdAt, row.sourceLanguage ?? ''));
+    statements.push(env.DB.prepare('INSERT OR REPLACE INTO entries(id,team_id,user_id,entry_type,company,project,description,hours,kilometers,report_slot,report_week_key,work_date,latitude,longitude,created_at,source_language) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(row.id, row.teamId, row.userId, row.entryType, row.company ?? '', row.project ?? '', row.description ?? '', row.hours ?? '0', row.kilometers ?? '0', row.reportSlot ?? 'auto', row.reportWeekKey ?? '', row.workDate ?? '', row.latitude ?? null, row.longitude ?? null, row.createdAt, row.sourceLanguage ?? ''));
   }
   for (const { row } of stagedPhotos) statements.push(env.DB.prepare('INSERT OR REPLACE INTO photos(id,entry_id,team_id,object_key,content_type,created_at) VALUES(?,?,?,?,?,?)').bind(row.id, row.entryId, row.teamId, row.objectKey, row.contentType, row.createdAt));
   try {

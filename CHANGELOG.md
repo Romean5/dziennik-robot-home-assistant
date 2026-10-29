@@ -1,3 +1,8 @@
+# 0.2.17
+
+- Każdy nowy wpis godzin ma trwale zapisany wybrany tydzień raportowy. Można wpisać datę z niedzieli albo nawet z wcześniejszego miesiąca, a wpis pozostanie w tygodniu wybranym podczas zapisu. Zmiana daty lub przejście do innego tygodnia nie przenosi poprzednich wpisów.
+- Przy zapisie godzin aplikacja wyraźnie pokazuje tydzień docelowy.
+
 # 0.2.16
 
 - Główny administrator może nadać wybranemu użytkownikowi rolę „Administrator brygady” albo ją odebrać. Administrator brygady może zatwierdzać nowych użytkowników i resetować PIN-y zwykłych członków, ale nie może nadawać ról ani ingerować w głównego administratora.

@@ -61,6 +61,9 @@ type Entry = {
 
     workDate: string;
 
+    /** Tydzień raportowy wybrany w chwili zapisu, np. 2026-W44. */
+    reportWeekKey?: string;
+
     reportSlot?: 'auto' | 'upper' | 'lower';
 
     latitude?: string;
@@ -117,6 +120,7 @@ type PendingEntry = {
     kilometers: string;
     reportSlot: 'auto' | 'upper' | 'lower';
     workDate: string;
+    reportWeekKey?: string;
     latitude: string;
     longitude: string;
     files: File[];
@@ -244,7 +248,7 @@ function mondayForIsoWeek(key: string) {
 }
 
 function timesheetDuplicateKey(entry: Entry) {
-    return [entry.workDate, entry.company.trim().toLocaleLowerCase(), entry.project.trim().toLocaleLowerCase(), entry.reportSlot || 'auto'].join('\u0000');
+    return [entry.workDate, entry.company.trim().toLocaleLowerCase(), entry.project.trim().toLocaleLowerCase(), entry.reportSlot || 'auto', entry.reportWeekKey || ''].join('\u0000');
 }
 const copy = {
     pl: { title: 'Dziennik Robót', team: 'Nazwa zespołu / budowy', name: 'Twoje imię', pin: 'Twój PIN', login: 'Wejdź do dziennika', loginHelp: 'Pierwsze wejście tworzy Twój profil. Następnym razem użyj tej samej nazwy, imienia i PIN-u.', wrong: 'Nieprawidłowy PIN albo dane.', invalid: 'Wpisz nazwę, imię oraz PIN z 4–8 cyfr.', pending: 'Prośba wysłana. Administrator musi Cię zatwierdzić.', temporaryExpired: 'PIN tymczasowy wygasł. Zadzwoń do administratora, aby wygenerował nowy.', rateLimited: 'Za dużo nieudanych prób. Spróbuj ponownie za około 15 minut.', admin: 'Prośby o dołączenie', approve: 'Zatwierdź', reject: 'Odrzuć', logout: 'Wyloguj', today: 'Dzisiejszy wpis', project: 'Budowa / ulica', projectPlaceholder: 'np. Ambolten 600, Kolding', work: 'Co zostało zrobione?', workPlaceholder: 'Napisz albo naciśnij mikrofon i opowiedz…', speak: 'Mów', listening: 'Słucham…', photo: 'Dodaj zdjęcia', location: 'Pobierz GPS', locating: 'Pobieram pozycję…', save: 'Zapisz i udostępnij', saving: 'Zapisuję…', recent: 'Wspólne wpisy', empty: 'Pierwszy wspólny wpis pojawi się tutaj.', gpsReady: 'Pozycja zapisana', gpsMissing: 'Bez GPS', photos: 'zdjęć', saved: 'Wpis zapisany — inni już go zobaczą', language: 'Język', voiceUnsupported: 'Głos nie jest dostępny w tej przeglądarce.' },
@@ -471,7 +475,7 @@ export default function Home() {
 
     } } catch { if (!value || !activeUser.current || ownerKey(value) !== ownerKey(activeUser.current)) return; try { const cached = value ? JSON.parse(localStorage.getItem(ownerCacheKey('projects', value)) || '[]') : []; if (Array.isArray(cached)) setProjects(cached); } catch {} } }
     function pendingAsEntry(p: PendingEntry): Entry {
-        return { id: p.id, entryType: p.entryType, company: p.company, project: p.project, description: p.description, author: user?.name ?? '', createdAt: p.createdAt, photoCount: p.files.length, hours: p.hours, kilometers: p.kilometers, workDate: p.workDate, reportSlot: p.reportSlot, latitude: p.latitude, longitude: p.longitude, pending: true, sourceLanguage: p.sourceLanguage ?? lang };
+        return { id: p.id, entryType: p.entryType, company: p.company, project: p.project, description: p.description, author: user?.name ?? '', createdAt: p.createdAt, photoCount: p.files.length, hours: p.hours, kilometers: p.kilometers, workDate: p.workDate, reportWeekKey: p.reportWeekKey, reportSlot: p.reportSlot, latitude: p.latitude, longitude: p.longitude, pending: true, sourceLanguage: p.sourceLanguage ?? lang };
     }
     function pendingForm(p: PendingEntry) {
         const form = new FormData();
@@ -486,6 +490,9 @@ export default function Home() {
         form.set('kilometers', p.kilometers);
         form.set('reportSlot', p.reportSlot);
         form.set('workDate', p.workDate);
+        // Older offline drafts did not yet have this field.  Keep their
+        // previous behaviour by assigning them from their work date once.
+        form.set('reportWeekKey', p.reportWeekKey || (p.entryType === 'timesheet' ? isoWeekKey(new Date(`${p.workDate}T12:00:00`)) : ''));
         if (p.latitude) form.set('latitude', p.latitude);
         if (p.longitude) form.set('longitude', p.longitude);
         p.files.forEach(file => form.append('photos', file));
@@ -661,7 +668,7 @@ export default function Home() {
     }
  if (entryType === 'worklog' && worklogStorage === 'device') { await saveDeviceWorklog(entryDate); return; }
  const entryCompany = entryType === 'timesheet' ? (companyForReportSlot(projectReportSlot) || defaultCompany || company) : company;
- const pending: PendingEntry = { id: crypto.randomUUID(), owner: user ? ownerKey(user) : '', entryType, company: entryCompany, project: project.trim(), description: entryType === 'worklog' ? work.trim() : '', hours: entryType === 'timesheet' ? hours : '0', kilometers: entryType === 'timesheet' ? kilometers : '0', reportSlot: entryType === 'timesheet' ? projectReportSlot as 'upper' | 'lower' : 'auto', workDate: entryDate, latitude: entryType === 'worklog' && position ? String(position.lat) : '', longitude: entryType === 'worklog' && position ? String(position.lng) : '', files: entryType === 'worklog' ? files : [], createdAt: Date.now(), sourceLanguage: lang };
+ const pending: PendingEntry = { id: crypto.randomUUID(), owner: user ? ownerKey(user) : '', entryType, company: entryCompany, project: project.trim(), description: entryType === 'worklog' ? work.trim() : '', hours: entryType === 'timesheet' ? hours : '0', kilometers: entryType === 'timesheet' ? kilometers : '0', reportSlot: entryType === 'timesheet' ? projectReportSlot as 'upper' | 'lower' : 'auto', workDate: entryDate, reportWeekKey: entryType === 'timesheet' ? reportWeekKey : '', latitude: entryType === 'worklog' && position ? String(position.lat) : '', longitude: entryType === 'worklog' && position ? String(position.lng) : '', files: entryType === 'worklog' ? files : [], createdAt: Date.now(), sourceLanguage: lang };
  setSaving(true);
  try { await writePendingEntry(pending); } catch { setSaving(false); setNotice(lang === 'pl' ? 'Nie udało się zapisać na urządzeniu. Nie zamykaj formularza.' : lang === 'da' ? 'Kunne ikke gemme på enheden. Hold formularen åben.' : 'Could not save on this device. Keep the form open.'); return; }
  setPendingEntries(current => [...current, pending]);
@@ -735,7 +742,10 @@ export default function Home() {
 
     monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7) + weekOffset * 7);
 
+    // This is the week selected in the report selector.  New time entries
+    // store it permanently, rather than deriving their report from workDate.
     const reportWeekKey = isoWeekKey(monday);
+    const entryReportWeekKey = (entry: Entry) => entry.reportWeekKey || isoWeekKey(new Date(`${effectiveWorkDate(entry)}T12:00:00`));
     useEffect(() => {
         if (!user?.id) return;
         let active = true;
@@ -787,14 +797,9 @@ export default function Home() {
         window.setTimeout(() => setReportSettingsNotice(''), 3500);
     }
 
-    const sunday = new Date(monday);
-
-    sunday.setDate(monday.getDate() + 6);
-
     const weekEntries = entries.filter(e => { if (e.entryType !== 'timesheet')
         return false;
- const d = new Date(`${effectiveWorkDate(e)}T12:00:00`);
- return d >= monday && d <= sunday;
+ return entryReportWeekKey(e) === reportWeekKey;
  }).sort((a, b) => effectiveWorkDate(a).localeCompare(effectiveWorkDate(b)));
 
     const weekNumber = (() => { const d = new Date(Date.UTC(monday.getFullYear(), monday.getMonth(), monday.getDate()));
@@ -807,9 +812,8 @@ export default function Home() {
     const currentMonday = new Date();
     currentMonday.setHours(12, 0, 0, 0);
     currentMonday.setDate(currentMonday.getDate() - ((currentMonday.getDay() + 6) % 7));
-    const oldestTimesheetDate = entries.filter(e => e.entryType === 'timesheet').map(effectiveWorkDate).sort()[0];
-    const firstMonday = oldestTimesheetDate ? new Date(`${oldestTimesheetDate}T12:00:00`) : new Date(currentMonday);
-    firstMonday.setDate(firstMonday.getDate() - ((firstMonday.getDay() + 6) % 7));
+    const oldestTimesheetWeekKey = entries.filter(e => e.entryType === 'timesheet').map(entryReportWeekKey).sort()[0];
+    const firstMonday = oldestTimesheetWeekKey ? (mondayForIsoWeek(oldestTimesheetWeekKey) || new Date(currentMonday)) : new Date(currentMonday);
     const elapsedUtcDays = (Date.UTC(currentMonday.getFullYear(), currentMonday.getMonth(), currentMonday.getDate()) - Date.UTC(firstMonday.getFullYear(), firstMonday.getMonth(), firstMonday.getDate())) / 86400000;
     const periodWeekCount = Math.max(1, Math.floor(elapsedUtcDays / 7) + 1);
     const periodWeekOptions = Array.from({ length: periodWeekCount }, (_, index) => {
@@ -821,25 +825,18 @@ export default function Home() {
     });
     const periodStartMonday = mondayForIsoWeek(periodStartKey) || currentMonday;
     const periodEndMonday = mondayForIsoWeek(periodEndKey) || currentMonday;
-    const periodStartDate = new Date(Math.min(periodStartMonday.getTime(), periodEndMonday.getTime()));
-    const periodEndDate = new Date(Math.max(periodStartMonday.getTime(), periodEndMonday.getTime()));
-    periodEndDate.setDate(periodEndDate.getDate() + 6);
+    const periodFirstKey = isoWeekKey(periodStartMonday <= periodEndMonday ? periodStartMonday : periodEndMonday);
+    const periodLastKey = isoWeekKey(periodStartMonday <= periodEndMonday ? periodEndMonday : periodStartMonday);
     const periodEntries = entries.filter(e => {
         if (e.entryType !== 'timesheet') return false;
-        const day = new Date(`${effectiveWorkDate(e)}T12:00:00`);
-        return day >= periodStartDate && day <= periodEndDate;
+        const key = entryReportWeekKey(e);
+        return key >= periodFirstKey && key <= periodLastKey;
     }).sort((a, b) => effectiveWorkDate(a).localeCompare(effectiveWorkDate(b)));
     const periodHours = periodEntries.reduce((sum, e) => sum + (Number(e.hours) || 0), 0);
     const periodKm = periodEntries.reduce((sum, e) => sum + (Number(e.kilometers) || 0), 0);
     const periodDays = new Set(periodEntries.map(effectiveWorkDate)).size;
-    const periodWeeks = periodWeekOptions.filter(option => option.key >= isoWeekKey(periodStartDate) && option.key <= isoWeekKey(periodEndDate)).map(option => {
-        const monday = mondayForIsoWeek(option.key)!;
-        const sunday = new Date(monday);
-        sunday.setDate(sunday.getDate() + 6);
-        const weekRows = periodEntries.filter(e => {
-            const day = new Date(`${effectiveWorkDate(e)}T12:00:00`);
-            return day >= monday && day <= sunday;
-        });
+    const periodWeeks = periodWeekOptions.filter(option => option.key >= periodFirstKey && option.key <= periodLastKey).map(option => {
+        const weekRows = periodEntries.filter(e => entryReportWeekKey(e) === option.key);
         return { ...option, hours: weekRows.reduce((sum, e) => sum + (Number(e.hours) || 0), 0), km: weekRows.reduce((sum, e) => sum + (Number(e.kilometers) || 0), 0) };
     });
     const sharedEntries = [...entries.filter(e => e.entryType === 'worklog'), ...deviceEntries].filter(e => !sharedProject || e.project === sharedProject).filter(e => sharedScope === 'all' || e.author === user?.name).sort((a, b) => b.createdAt - a.createdAt);
@@ -1151,6 +1148,7 @@ export default function Home() {
 <datalist id="project-list">{projects.map(p => <option key={p.id} value={p.name}/>)}</datalist>
 </label>
 <label className="field report-slot-select"><span>{lang === 'da' ? 'Gem i rapport' : lang === 'en' ? 'Save to report' : lang === 'lt' ? toLithuanian('Zapisz w raporcie') : 'Zapisz w raporcie'}</span><select value={projectReportSlot} onChange={e => setProjectReportSlot(e.target.value as '' | 'upper' | 'lower')}><option value="">{lang === 'da' ? 'Vælg rapport…' : lang === 'en' ? 'Choose a report…' : lang === 'lt' ? toLithuanian('Wybierz raport…') : 'Wybierz raport…'}</option><option value="upper">{lang === 'da' ? 'Øverste rapport' : lang === 'en' ? 'Upper report' : lang === 'lt' ? toLithuanian('Górny raport') : 'Górny raport'}</option><option value="lower">{lang === 'da' ? 'Nederste rapport' : lang === 'en' ? 'Lower report' : lang === 'lt' ? toLithuanian('Dolny raport') : 'Dolny raport'}</option></select></label>
+<p className="report-target-note">{lang === 'da' ? `Indlægget gemmes permanent i uge ${weekNumber}.` : lang === 'en' ? `This entry will remain in week ${weekNumber}.` : lang === 'lt' ? toLithuanian(`Wpis zostanie na stałe zapisany w tygodniu ${weekNumber}.`) : `Wpis zostanie na stałe zapisany w tygodniu ${weekNumber}.`}</p>
 {notice && <p className="notice">{notice}</p>}<button className="save-button" onClick={() => saveEntry('timesheet')} disabled={saving || !project.trim() || (!hours && !kilometers) || !workDate || (projectReportSlot !== 'upper' && projectReportSlot !== 'lower')}>{saving ? t.saving : lang === 'da' ? 'Gem timer' : lang === 'en' ? 'Save hours' : lang === 'lt' ? toLithuanian('Zapisz godziny') : 'Zapisz godziny'}</button>
 </section>
 </details>}

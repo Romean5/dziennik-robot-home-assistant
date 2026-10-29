@@ -100,6 +100,7 @@ button,label { -webkit-tap-highlight-color:transparent; }
 .gps-status span { margin-right:7px; }
 .gps-status.ready { background:var(--mint); color:var(--green-dark); }
 .notice { margin:12px 0 0; color:var(--green-dark); text-align:center; font-weight:700; }
+.report-target-note { margin:10px 0 0; color:var(--green-dark); font-size:.92rem; font-weight:700; }
 .pending-sync { margin:12px 0 0; padding:10px 12px; border-radius:11px; background:#fff7dc; color:#7a5a00; font-size:13px; font-weight:750; text-align:center; }
 .save-button { width:100%; min-height:60px; margin-top:16px; border:0; border-radius:15px; background:var(--green); color:white; font-size:17px; font-weight:850; box-shadow:0 8px 18px #176b4333; }
 .save-button:disabled { background:#aab7af; box-shadow:none; }
