@@ -146,6 +146,7 @@ button,label { -webkit-tap-highlight-color:transparent; }
 .pdf-preview { position:fixed; inset:0; z-index:100; display:flex; flex-direction:column; padding:12px; background:#13211ae8; }
 .pdf-preview-bar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; border-radius:14px 14px 0 0; background:white; }
 .pdf-preview-bar .secondary-button { margin:0; }
+.pdf-preview iframe { width:100%; flex:1; border:0; border-radius:0 0 14px 14px; background:white; }
 .pdf-renderer { flex:1; min-height:0; overflow:auto; border-radius:0 0 14px 14px; background:#6f756f; }
 .pdf-preview-status { margin:0; padding:16px; color:#15221b; text-align:center; background:white; font-weight:700; }
 .pdf-canvas-pages { display:flex; flex-direction:column; align-items:center; gap:12px; padding:12px; }

@@ -1,3 +1,8 @@
+# 0.2.20
+
+- Przywrócono poprzedni, sprawdzony sposób podglądu PDF: na telefonie PDF otwiera się w osobnej karcie, a na komputerze w oknie podglądu aplikacji.
+- Usunięto eksperymentalny renderer PDF.js i dodatkowe przyciski z podglądu, które zmieniły działające zachowanie na części telefonów.
+
 # 0.2.19
 
 - The installation panel now launches the real Android install prompt when available and otherwise clearly explains why it is unavailable.
