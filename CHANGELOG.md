@@ -1,3 +1,8 @@
+# 0.2.13
+
+- Nowy ekran startowy z kafelkami: Karta pracy, Raport tygodniowy, Dzisiejszy wpis, Wspólne wpisy, Ustawienia oraz Użytkownicy zespołu dla administratora.
+- Po wybraniu kafelka widoczna jest tylko jego sekcja; przycisk powrotu prowadzi do kafelków.
+
 # 0.2.12
 
 - Ewidencja godzin zawiera tylko datę, godziny, kilometry i budowę / ulicę.

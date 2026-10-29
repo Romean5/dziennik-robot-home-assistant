@@ -260,6 +260,7 @@ export default function Home() {
     const [translationErrors, setTranslationErrors] = useState<Record<string, boolean>>({});
     const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
     const [showInstallGuide, setShowInstallGuide] = useState(false);
+    const [activePanel, setActivePanel] = useState<'home' | 'card' | 'report' | 'worklog' | 'shared' | 'team' | 'settings'>('home');
     const [user, setUser] = useState<User | null>(null), [loading, setLoading] = useState(true), [draftReady, setDraftReady] = useState(false);
 
     const [name, setName] = useState(''), [pin, setPin] = useState(''), [newPin, setNewPin] = useState(''), [authError, setAuthError] = useState(''), [temporaryPin, setTemporaryPin] = useState<{ name: string; pin: string } | null>(null);
@@ -1071,7 +1072,16 @@ export default function Home() {
 {installGuide()}
 </header>
 <button className="logout" onClick={logout}>{t.logout}</button>
-    {user.role === 'admin' && <details className="admin-card user-list-card">
+<nav className="dashboard-tiles no-print" aria-label={lang === 'da' ? 'Menu' : lang === 'en' ? 'Menu' : lang === 'lt' ? toLithuanian('Menu') : 'Menu'}>
+<button className={`dashboard-tile ${activePanel === 'card' ? 'selected' : ''}`} onClick={() => setActivePanel('card')}><span>✎</span><strong>{lang === 'da' ? 'Arbejdskort' : lang === 'en' ? 'Work card' : lang === 'lt' ? toLithuanian('Karta pracy') : 'Karta pracy'}</strong><small>{lang === 'da' ? 'Timer og rapportdata' : lang === 'en' ? 'Hours and report data' : lang === 'lt' ? toLithuanian('Godziny i dane raportu') : 'Godziny i dane raportu'}</small></button>
+<button className={`dashboard-tile ${activePanel === 'report' ? 'selected' : ''}`} onClick={() => setActivePanel('report')}><span>▤</span><strong>{lang === 'da' ? 'Ugerapport' : lang === 'en' ? 'Weekly report' : lang === 'lt' ? toLithuanian('Raport tygodniowy') : 'Raport tygodniowy'}</strong><small>{lang === 'da' ? `Uge ${weekNumber}` : lang === 'en' ? `Week ${weekNumber}` : lang === 'lt' ? `${toLithuanian('Tydzień')} ${weekNumber}` : `Tydzień ${weekNumber}`}</small></button>
+<button className={`dashboard-tile ${activePanel === 'worklog' ? 'selected' : ''}`} onClick={() => setActivePanel('worklog')}><span>☷</span><strong>{lang === 'da' ? 'Dagens notat' : lang === 'en' ? 'Today’s note' : lang === 'lt' ? toLithuanian('Dzisiejszy wpis') : 'Dzisiejszy wpis'}</strong><small>{lang === 'da' ? 'Beskrivelse og billeder' : lang === 'en' ? 'Description and photos' : lang === 'lt' ? toLithuanian('Opis i zdjęcia') : 'Opis i zdjęcia'}</small></button>
+<button className={`dashboard-tile ${activePanel === 'shared' ? 'selected' : ''}`} onClick={() => setActivePanel('shared')}><span>⌂</span><strong>{lang === 'da' ? 'Fælles indlæg' : lang === 'en' ? 'Shared entries' : lang === 'lt' ? toLithuanian('Wspólne wpisy') : 'Wspólne wpisy'}</strong><small>{lang === 'da' ? 'Byggepladser og fotos' : lang === 'en' ? 'Sites and photos' : lang === 'lt' ? toLithuanian('Budowy i zdjęcia') : 'Budowy i zdjęcia'}</small></button>
+{user.role === 'admin' && <button className={`dashboard-tile ${activePanel === 'team' ? 'selected' : ''}`} onClick={() => setActivePanel('team')}><span>♙</span><strong>{lang === 'da' ? 'Teammedlemmer' : lang === 'en' ? 'Team users' : lang === 'lt' ? toLithuanian('Użytkownicy zespołu') : 'Użytkownicy zespołu'}</strong><small>{teamUsers.length}</small></button>}
+<button className={`dashboard-tile ${activePanel === 'settings' ? 'selected' : ''}`} onClick={() => setActivePanel('settings')}><span>⚙</span><strong>{lang === 'da' ? 'Indstillinger' : lang === 'en' ? 'Settings' : lang === 'lt' ? toLithuanian('Ustawienia') : 'Ustawienia'}</strong><small>{lang === 'da' ? 'Skift PIN' : lang === 'en' ? 'Change PIN' : lang === 'lt' ? toLithuanian('Zmiana PIN-u') : 'Zmiana PIN-u'}</small></button>
+</nav>
+{activePanel !== 'home' && <button className="back-to-tiles no-print" onClick={() => setActivePanel('home')}>‹ {lang === 'da' ? 'Alle felter' : lang === 'en' ? 'All tiles' : lang === 'lt' ? toLithuanian('Wszystkie kafelki') : 'Wszystkie kafelki'}</button>}
+    {activePanel === 'team' && user.role === 'admin' && <details className="admin-card user-list-card" open>
 <summary>{lang === 'da' ? 'Teammedlemmer' : lang === 'en' ? 'Team users' : lang === 'lt' ? toLithuanian('Użytkownicy zespołu') : 'Użytkownicy zespołu'} <span className="chevron">⌄</span><b>{teamUsers.length}</b></summary>
 <p className="admin-help">{lang === 'da' ? 'Eksisterende PIN-koder vises ikke. Du kan nulstille en medlems PIN og give dem en midlertidig kode.' : lang === 'en' ? 'Existing PINs are never shown. You can reset a member’s PIN and give them a temporary code.' : lang === 'lt' ? toLithuanian('Dotychczasowe PIN-y nie są widoczne. Możesz zresetować PIN członka i przekazać mu nowy, tymczasowy kod.') : 'Dotychczasowe PIN-y nie są widoczne. Możesz zresetować PIN członka i przekazać mu nowy, tymczasowy kod.'}</p>
 {requests.length > 0 && <>
@@ -1086,7 +1096,7 @@ export default function Home() {
 {teamUsers.map(member => <div className="request-row" key={member.id}><strong>{member.name}</strong>{member.role === 'admin' ? <span>{lang === 'da' ? 'administrator' : lang === 'en' ? 'administrator' : lang === 'lt' ? toLithuanian('administrator') : 'administrator'}</span> : <button className="reject" onClick={() => resetMemberPin(member)}>{lang === 'da' ? 'Nulstil PIN' : lang === 'en' ? 'Reset PIN' : lang === 'lt' ? toLithuanian('Resetuj PIN') : 'Resetuj PIN'}</button>}</div>)}
 {temporaryPin && <div className="admin-help" role="status"><strong>{lang === 'da' ? `Midlertidig PIN for ${temporaryPin.name}:` : lang === 'en' ? `Temporary PIN for ${temporaryPin.name}:` : `Tymczasowy PIN dla ${temporaryPin.name}:`} {temporaryPin.pin}</strong><p>{lang === 'da' ? 'Fortæl den til personen inden for 24 timer. Den vises kun nu; næste gang skal personen vælge en ny PIN.' : lang === 'en' ? 'Share it with the person within 24 hours. It is shown only now; they must choose a new PIN at login.' : lang === 'lt' ? toLithuanian('Przekaż go tej osobie w ciągu 24 godzin. Kod jest pokazany tylko teraz; przy logowaniu ustawi własny PIN.') : 'Przekaż go tej osobie w ciągu 24 godzin. Kod jest pokazany tylko teraz; przy logowaniu ustawi własny PIN.'}</p><button className="secondary-button" onClick={() => setTemporaryPin(null)}>{lang === 'da' ? 'Luk' : lang === 'en' ? 'Dismiss' : lang === 'lt' ? toLithuanian('Zamknij') : 'Zamknij'}</button></div>}
 </details>}
-    <details className="entry-card unified-entry no-print">
+    {activePanel === 'card' && <details className="entry-card unified-entry no-print" open>
 <summary>{lang === 'da' ? 'Dagens arbejdskort' : lang === 'en' ? 'Today’s work card' : lang === 'lt' ? toLithuanian('Dzisiejsza karta pracy') : 'Dzisiejsza karta pracy'}<span>⌄</span>
 </summary>
 <details className="form-section fixed-data-fold">
@@ -1131,8 +1141,8 @@ export default function Home() {
 <label className="field report-slot-select"><span>{lang === 'da' ? 'Gem i rapport' : lang === 'en' ? 'Save to report' : lang === 'lt' ? toLithuanian('Zapisz w raporcie') : 'Zapisz w raporcie'}</span><select value={projectReportSlot} onChange={e => setProjectReportSlot(e.target.value as '' | 'upper' | 'lower')}><option value="">{lang === 'da' ? 'Vælg rapport…' : lang === 'en' ? 'Choose a report…' : lang === 'lt' ? toLithuanian('Wybierz raport…') : 'Wybierz raport…'}</option><option value="upper">{lang === 'da' ? 'Øverste rapport' : lang === 'en' ? 'Upper report' : lang === 'lt' ? toLithuanian('Górny raport') : 'Górny raport'}</option><option value="lower">{lang === 'da' ? 'Nederste rapport' : lang === 'en' ? 'Lower report' : lang === 'lt' ? toLithuanian('Dolny raport') : 'Dolny raport'}</option></select></label>
 {notice && <p className="notice">{notice}</p>}<button className="save-button" onClick={() => saveEntry('timesheet')} disabled={saving || !project.trim() || (!hours && !kilometers) || !workDate || (projectReportSlot !== 'upper' && projectReportSlot !== 'lower')}>{saving ? t.saving : lang === 'da' ? 'Gem timer' : lang === 'en' ? 'Save hours' : lang === 'lt' ? toLithuanian('Zapisz godziny') : 'Zapisz godziny'}</button>
 </section>
-</details>
-    <details className="report-fold no-print">
+</details>}
+    {activePanel === 'report' && <details className="report-fold no-print" open>
 <summary>{lang === 'da' ? 'Ugerapport' : lang === 'en' ? 'Weekly report' : lang === 'lt' ? toLithuanian('Raport tygodniowy') : 'Raport tygodniowy'} · {weekNumber}<span>⌄</span></summary>
     <section className="report-card">
 <div>
@@ -1160,7 +1170,7 @@ export default function Home() {
 {periodWeeks.length > 1 && <div className="period-week-list">{periodWeeks.map(week => <div key={week.key}><span>{week.label}</span><strong>{week.hours} h · {week.km} km</strong></div>)}</div>}
 {!periodEntries.length && <p className="period-empty">{lang === 'da' ? 'Ingen registrerede timer i denne periode.' : lang === 'en' ? 'No hours recorded for this period.' : lang === 'lt' ? toLithuanian('Brak zapisanych godzin w tym okresie.') : 'Brak zapisanych godzin w tym okresie.'}</p>}
 </details>
-</details>{pdfPreviewUrl && <div className="pdf-preview no-print" role="dialog" aria-modal="true" aria-label={lang === 'da' ? 'PDF-forhåndsvisning' : lang === 'en' ? 'PDF preview' : lang === 'lt' ? toLithuanian('Podgląd PDF') : 'Podgląd PDF'}>
+</details>}{pdfPreviewUrl && <div className="pdf-preview no-print" role="dialog" aria-modal="true" aria-label={lang === 'da' ? 'PDF-forhåndsvisning' : lang === 'en' ? 'PDF preview' : lang === 'lt' ? toLithuanian('Podgląd PDF') : 'Podgląd PDF'}>
 <div className="pdf-preview-bar">
 <strong>{lang === 'da' ? 'PDF-forhåndsvisning' : lang === 'en' ? 'PDF preview' : lang === 'lt' ? toLithuanian('Podgląd PDF') : 'Podgląd PDF'}</strong>
 <button className="secondary-button" onClick={() => { URL.revokeObjectURL(pdfPreviewUrl);
@@ -1168,7 +1178,7 @@ export default function Home() {
  }}>{lang === 'da' ? 'Luk' : lang === 'en' ? 'Close' : lang === 'lt' ? toLithuanian('Zamknij') : 'Zamknij'}</button>
 </div>
 <iframe src={pdfPreviewUrl} title={lang === 'da' ? 'PDF-forhåndsvisning' : lang === 'en' ? 'PDF preview' : lang === 'lt' ? toLithuanian('Podgląd PDF') : 'Podgląd PDF'}/>
-</div>}<details className="entry-card worklog-card no-print">
+</div>}{activePanel === 'worklog' && <details className="entry-card worklog-card no-print" open>
 <summary>{t.today}<span>⌄</span>
 </summary>
 <label className="field"><span>{lang === 'da' ? 'Gem som' : lang === 'en' ? 'Save as' : lang === 'lt' ? toLithuanian('Zapisz jako') : 'Zapisz jako'}</span><select value={worklogStorage} onChange={e => setWorklogStorage(e.target.value as 'cloud' | 'device')}><option value="cloud">{lang === 'da' ? 'I skyen — synlig for teamet' : lang === 'en' ? 'In the cloud — visible to the team' : lang === 'lt' ? toLithuanian('W chmurze — widoczne dla zespołu') : 'W chmurze — widoczne dla zespołu'}</option><option value="device">{lang === 'da' ? 'Kun på denne telefon' : lang === 'en' ? 'Only on this device' : lang === 'lt' ? toLithuanian('Tylko na tym telefonie') : 'Tylko na tym telefonie'}</option></select></label>
@@ -1193,7 +1203,7 @@ export default function Home() {
 <button onClick={() => setFiles(x => x.filter((_, j) => j !== i))}>×</button>
 </div>)}</div>}<div className={`gps-status ${position ? 'ready' : ''}`}>{position ? `● ${t.gpsReady} · ${position.lat.toFixed(5)}, ${position.lng.toFixed(5)}` : `○ ${t.gpsMissing}`}</div>
 <button className="save-button" onClick={() => saveEntry('worklog')} disabled={saving || !project.trim() || !work.trim() || !workDate}>{saving ? t.saving : t.save}</button>
-</details>
+</details>}
     <section className="print-report">
 <h1>Timeregistrering · {lang === 'pl' ? 'tydzień' : lang === 'da' ? 'uge' : lang === 'lt' ? 'savaitė' : 'week'} {weekNumber}</h1>
 <div className="report-meta">
@@ -1234,7 +1244,7 @@ export default function Home() {
 </tfoot>
 </table>
 </section>
-    <section className="recent-section no-print">
+    {activePanel === 'shared' && <section className="recent-section no-print">
 <h2>{t.recent}</h2>
 <details className="project-management">
 <summary>{lang === 'da' ? 'Gemte byggepladser' : lang === 'en' ? 'Saved sites' : lang === 'lt' ? toLithuanian('Zapisane ulice') : 'Zapisane ulice'} · {projects.length}<span>⌄</span></summary>
@@ -1260,8 +1270,8 @@ export default function Home() {
 </div>}
 <EntryPhotos entryId={e.id} count={e.photoCount} language={lang} files={'storage' in e ? (e as DeviceEntry).photos : pendingEntries.find(item => item.id === e.id)?.files} canDelete={('storage' in e && (e as DeviceEntry).owner === (user ? ownerKey(user) : '')) || e.author === user?.name} onDeletePhoto={(photoId, index) => deleteEntryPhoto(e, photoId, index)} />
 <small>{'storage' in e ? (lang === 'da' ? 'Kun denne telefon · ' : lang === 'en' ? 'This device only · ' : lang === 'lt' ? toLithuanian('Tylko ten telefon · ') : 'Tylko ten telefon · ') : ''}📷 {e.photoCount} {t.photos} · {e.latitude ? `⌖ ${t.gpsReady}` : t.gpsMissing}</small>
-</article>)}</div>}</section>
-<details className="pin-card no-print">
+</article>)}</div>}</section>}
+{activePanel === 'settings' && <details className="pin-card no-print" open>
 <summary>{lang === 'da' ? 'Skift PIN' : lang === 'en' ? 'Change PIN' : lang === 'lt' ? toLithuanian('Zmiana PIN-u') : 'Zmiana PIN-u'}<span>⌄</span>
 </summary>
 <div className="pin-row">
@@ -1271,7 +1281,7 @@ export default function Home() {
 </label>
 <button className="secondary-button" onClick={changePin} disabled={!newPin}>{lang === 'da' ? 'Gem' : lang === 'en' ? 'Save' : lang === 'lt' ? toLithuanian('Zapisz') : 'Zapisz'}</button>
 </div>
-</details>
+</details>}
 </main>;
 
 }
