@@ -129,12 +129,13 @@ function ownerKey(value: Pick<User, 'id' | 'teamId' | 'name' | 'teamName'>) {
 }
 
 /**
- * Stałe pola blankietu są łatwiejsze do rozpoznania, kiedy obok nazwy
- * użytkownika widoczna jest nazwa angielska. Sam PDF pozostaje bez zmian.
+ * Nazwa duńska jest dosłowną nazwą kratki z firmowego blankietu. Obok
+ * pokazujemy jej tłumaczenie w języku aplikacji, aby użytkownik od razu
+ * wiedział, gdzie dana wartość trafi na duńskim raporcie PDF.
  */
 function reportFieldLabel(lang: Language, english: string, polish: string, danish: string, lithuanian: string) {
     const translation = lang === 'da' ? danish : lang === 'lt' ? lithuanian : lang === 'pl' ? polish : english;
-    return translation === english ? english : `${english} / ${translation}`;
+    return translation === danish ? danish : `${danish} — ${translation}`;
 }
 
 function ownerCacheKey(kind: 'entries' | 'projects', value: Pick<User, 'id' | 'teamId' | 'name' | 'teamName'>) {

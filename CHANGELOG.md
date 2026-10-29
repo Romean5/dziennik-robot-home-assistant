@@ -1,3 +1,7 @@
+# 0.2.11
+
+- W stałych danych najpierw widoczna jest duńska nazwa kratki z oryginalnego blankietu, a obok tłumaczenie w wybranym języku aplikacji.
+
 # 0.2.10
 
 - Pola stałych danych raportu pokazują teraz nazwę angielską oraz tłumaczenie w wybranym języku, aby łatwiej dopasować je do blankietu.
