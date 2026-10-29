@@ -1,3 +1,7 @@
+# 0.2.16
+
+- Główny administrator może nadać wybranemu użytkownikowi rolę „Administrator brygady” albo ją odebrać. Administrator brygady może zatwierdzać nowych użytkowników i resetować PIN-y zwykłych członków, ale nie może nadawać ról ani ingerować w głównego administratora.
+
 # 0.2.15
 
 - Przycisk instalacji uruchamia teraz systemowe okno instalacji, gdy przeglądarka je udostępnia; w przeciwnym razie nazywa się jasno „Jak zainstalować”. Dodano wymagane przez Androida ikony PNG 192×192 i 512×512.

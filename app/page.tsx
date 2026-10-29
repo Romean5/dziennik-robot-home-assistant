@@ -300,6 +300,7 @@ export default function Home() {
     activeUser.current = user;
 
     const date = useMemo(() => new Intl.DateTimeFormat(lang === 'da' ? 'da-DK' : lang === 'en' ? 'en-GB' : lang === 'lt' ? 'lt-LT' : 'pl-PL', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()), [lang]);
+    const canManageTeam = user?.role === 'admin' || user?.role === 'manager';
 
     useEffect(() => { document.documentElement.lang = lang === 'lt' ? 'lt' : lang === 'da' ? 'da' : lang === 'en' ? 'en' : 'pl'; }, [lang]);
     useEffect(() => { if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {}); }, []);
@@ -334,7 +335,7 @@ export default function Home() {
 
         loadProjects(d.user);
 
-        if (d.user.role === 'admin')
+        if (d.user.role === 'admin' || d.user.role === 'manager')
             loadRequests();
 
     } }).catch(() => { try {
@@ -534,6 +535,17 @@ export default function Home() {
         if (!response.ok || !result.temporaryPin) { setNotice(lang === 'da' ? 'PIN kunne ikke nulstilles' : lang === 'en' ? 'Could not reset the PIN' : lang === 'lt' ? toLithuanian('Nie udało się zresetować PIN-u') : 'Nie udało się zresetować PIN-u'); return; }
         setTemporaryPin({ name: member.name, pin: result.temporaryPin });
     }
+    async function changeMemberRole(member: JoinRequest, action: 'grantManager' | 'revokeManager') {
+        const giving = action === 'grantManager';
+        const accepted = window.confirm(giving
+            ? `Nadać użytkownikowi ${member.name} uprawnienia administratora brygady?`
+            : `Odebrać użytkownikowi ${member.name} uprawnienia administratora brygady?`);
+        if (!accepted) return;
+        const response = await fetch('/api/admin/requests', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: member.id, action }) });
+        if (!response.ok) { setNotice('Nie udało się zmienić uprawnień.'); return; }
+        setNotice(giving ? `Uprawnienia administratora brygady nadano użytkownikowi ${member.name}.` : `Uprawnienia administratora brygady odebrano użytkownikowi ${member.name}.`);
+        await loadRequests();
+    }
     async function login() { setAuthError('');
  const r = await fetch('/api/auth', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, pin, language: lang }) });
  const d = await r.json().catch(() => ({}));
@@ -556,7 +568,7 @@ export default function Home() {
 
         await loadProjects(d.user);
 
-        if (d.user.role === 'admin')
+        if (d.user.role === 'admin' || d.user.role === 'manager')
             await loadRequests();
 
     }
@@ -1077,11 +1089,11 @@ export default function Home() {
 <button className={`dashboard-tile ${activePanel === 'report' ? 'selected' : ''}`} onClick={() => setActivePanel('report')}><span>▤</span><strong>{lang === 'da' ? 'Ugerapport' : lang === 'en' ? 'Weekly report' : lang === 'lt' ? toLithuanian('Raport tygodniowy') : 'Raport tygodniowy'}</strong><small>{lang === 'da' ? `Uge ${weekNumber}` : lang === 'en' ? `Week ${weekNumber}` : lang === 'lt' ? `${toLithuanian('Tydzień')} ${weekNumber}` : `Tydzień ${weekNumber}`}</small></button>
 <button className={`dashboard-tile ${activePanel === 'worklog' ? 'selected' : ''}`} onClick={() => setActivePanel('worklog')}><span>☷</span><strong>{lang === 'da' ? 'Dagens notat' : lang === 'en' ? 'Today’s note' : lang === 'lt' ? toLithuanian('Dzisiejszy wpis') : 'Dzisiejszy wpis'}</strong><small>{lang === 'da' ? 'Beskrivelse og billeder' : lang === 'en' ? 'Description and photos' : lang === 'lt' ? toLithuanian('Opis i zdjęcia') : 'Opis i zdjęcia'}</small></button>
 <button className={`dashboard-tile ${activePanel === 'shared' ? 'selected' : ''}`} onClick={() => setActivePanel('shared')}><span>⌂</span><strong>{lang === 'da' ? 'Fælles indlæg' : lang === 'en' ? 'Shared entries' : lang === 'lt' ? toLithuanian('Wspólne wpisy') : 'Wspólne wpisy'}</strong><small>{lang === 'da' ? 'Byggepladser og fotos' : lang === 'en' ? 'Sites and photos' : lang === 'lt' ? toLithuanian('Budowy i zdjęcia') : 'Budowy i zdjęcia'}</small></button>
-{user.role === 'admin' && <button className={`dashboard-tile ${activePanel === 'team' ? 'selected' : ''}`} onClick={() => setActivePanel('team')}><span>♙</span><strong>{lang === 'da' ? 'Teammedlemmer' : lang === 'en' ? 'Team users' : lang === 'lt' ? toLithuanian('Użytkownicy zespołu') : 'Użytkownicy zespołu'}</strong><small>{teamUsers.length}</small></button>}
+{canManageTeam && <button className={`dashboard-tile ${activePanel === 'team' ? 'selected' : ''}`} onClick={() => setActivePanel('team')}><span>♙</span><strong>{lang === 'da' ? 'Teammedlemmer' : lang === 'en' ? 'Team users' : lang === 'lt' ? toLithuanian('Użytkownicy zespołu') : 'Użytkownicy zespołu'}</strong><small>{teamUsers.length}</small></button>}
 <button className={`dashboard-tile ${activePanel === 'settings' ? 'selected' : ''}`} onClick={() => setActivePanel('settings')}><span>⚙</span><strong>{lang === 'da' ? 'Indstillinger' : lang === 'en' ? 'Settings' : lang === 'lt' ? toLithuanian('Ustawienia') : 'Ustawienia'}</strong><small>{lang === 'da' ? 'Skift PIN' : lang === 'en' ? 'Change PIN' : lang === 'lt' ? toLithuanian('Zmiana PIN-u') : 'Zmiana PIN-u'}</small></button>
 </nav>
 {activePanel !== 'home' && <button className="back-to-tiles no-print" onClick={() => setActivePanel('home')}>‹ {lang === 'da' ? 'Alle felter' : lang === 'en' ? 'All tiles' : lang === 'lt' ? toLithuanian('Wszystkie kafelki') : 'Wszystkie kafelki'}</button>}
-    {activePanel === 'team' && user.role === 'admin' && <details className="admin-card user-list-card" open>
+    {activePanel === 'team' && canManageTeam && <details className="admin-card user-list-card" open>
 <summary>{lang === 'da' ? 'Teammedlemmer' : lang === 'en' ? 'Team users' : lang === 'lt' ? toLithuanian('Użytkownicy zespołu') : 'Użytkownicy zespołu'} <span className="chevron">⌄</span><b>{teamUsers.length}</b></summary>
 <p className="admin-help">{lang === 'da' ? 'Eksisterende PIN-koder vises ikke. Du kan nulstille en medlems PIN og give dem en midlertidig kode.' : lang === 'en' ? 'Existing PINs are never shown. You can reset a member’s PIN and give them a temporary code.' : lang === 'lt' ? toLithuanian('Dotychczasowe PIN-y nie są widoczne. Możesz zresetować PIN członka i przekazać mu nowy, tymczasowy kod.') : 'Dotychczasowe PIN-y nie są widoczne. Możesz zresetować PIN członka i przekazać mu nowy, tymczasowy kod.'}</p>
 {requests.length > 0 && <>
@@ -1093,7 +1105,7 @@ export default function Home() {
 <button className="reject" onClick={() => decide(r.id, 'reject')}>{t.reject}</button>
 </div>
 </div>)}</>}
-{teamUsers.map(member => <div className="request-row" key={member.id}><strong>{member.name}</strong>{member.role === 'admin' ? <span>{lang === 'da' ? 'administrator' : lang === 'en' ? 'administrator' : lang === 'lt' ? toLithuanian('administrator') : 'administrator'}</span> : <button className="reject" onClick={() => resetMemberPin(member)}>{lang === 'da' ? 'Nulstil PIN' : lang === 'en' ? 'Reset PIN' : lang === 'lt' ? toLithuanian('Resetuj PIN') : 'Resetuj PIN'}</button>}</div>)}
+{teamUsers.map(member => <div className="request-row" key={member.id}><strong>{member.name}</strong><div>{member.role === 'admin' ? <span>{lang === 'da' ? 'hovedadministrator' : lang === 'en' ? 'main administrator' : 'Główny administrator'}</span> : <>{member.role === 'manager' && <span>{lang === 'da' ? 'brigadeadministrator' : lang === 'en' ? 'crew administrator' : 'Administrator brygady'}</span>}{member.id !== user.id && <button className="reject" onClick={() => resetMemberPin(member)}>{lang === 'da' ? 'Nulstil PIN' : lang === 'en' ? 'Reset PIN' : lang === 'lt' ? toLithuanian('Resetuj PIN') : 'Resetuj PIN'}</button>}{user.role === 'admin' && <button className="secondary-button" onClick={() => changeMemberRole(member, member.role === 'manager' ? 'revokeManager' : 'grantManager')}>{member.role === 'manager' ? 'Odbierz administratora' : 'Nadaj administratora'}</button>}</>}</div></div>)}
 {temporaryPin && <div className="admin-help" role="status"><strong>{lang === 'da' ? `Midlertidig PIN for ${temporaryPin.name}:` : lang === 'en' ? `Temporary PIN for ${temporaryPin.name}:` : `Tymczasowy PIN dla ${temporaryPin.name}:`} {temporaryPin.pin}</strong><p>{lang === 'da' ? 'Fortæl den til personen inden for 24 timer. Den vises kun nu; næste gang skal personen vælge en ny PIN.' : lang === 'en' ? 'Share it with the person within 24 hours. It is shown only now; they must choose a new PIN at login.' : lang === 'lt' ? toLithuanian('Przekaż go tej osobie w ciągu 24 godzin. Kod jest pokazany tylko teraz; przy logowaniu ustawi własny PIN.') : 'Przekaż go tej osobie w ciągu 24 godzin. Kod jest pokazany tylko teraz; przy logowaniu ustawi własny PIN.'}</p><button className="secondary-button" onClick={() => setTemporaryPin(null)}>{lang === 'da' ? 'Luk' : lang === 'en' ? 'Dismiss' : lang === 'lt' ? toLithuanian('Zamknij') : 'Zamknij'}</button></div>}
 </details>}
     {activePanel === 'card' && <details className="entry-card unified-entry no-print" open>
