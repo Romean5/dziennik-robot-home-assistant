@@ -1,3 +1,8 @@
+# 0.2.18
+
+- Podgląd PDF jest renderowany bezpośrednio w aplikacji przez PDF.js, bez otwierania automatycznej karty `blob:`. Działa także na telefonach, które blokują własny podgląd PDF.
+- „Pobierz PDF” prowadzi teraz do widocznego przycisku pobierania w podglądzie. Dzięki temu Android nie blokuje syntetycznego pobrania uruchamianego po wygenerowaniu pliku.
+
 # 0.2.17
 
 - Każdy nowy wpis godzin ma trwale zapisany wybrany tydzień raportowy. Można wpisać datę z niedzieli albo nawet z wcześniejszego miesiąca, a wpis pozostanie w tygodniu wybranym podczas zapisu. Zmiana daty lub przejście do innego tygodnia nie przenosi poprzednich wpisów.

@@ -8,6 +8,7 @@ import { toLithuanian } from './locale-lt';
 
 import fontkit from '@pdf-lib/fontkit';
 import EntryPhotos from './EntryPhotos';
+import PdfPreview from './PdfPreview';
 
 type Language = 'pl' | 'da' | 'en' | 'lt';
 type InstallPromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }> };
@@ -275,7 +276,7 @@ export default function Home() {
 
         lng: number;
 
-    } | null>(null), [locating, setLocating] = useState(false), [listening, setListening] = useState(false), [saving, setSaving] = useState(false), [notice, setNotice] = useState(''), [pdfPreviewUrl, setPdfPreviewUrl] = useState(''), [weekOffset, setWeekOffset] = useState(0), [entries, setEntries] = useState<Entry[]>([]), [requests, setRequests] = useState<JoinRequest[]>([]), [teamUsers, setTeamUsers] = useState<JoinRequest[]>([]);
+    } | null>(null), [locating, setLocating] = useState(false), [listening, setListening] = useState(false), [saving, setSaving] = useState(false), [notice, setNotice] = useState(''), [pdfPreviewBlob, setPdfPreviewBlob] = useState<Blob | null>(null), [weekOffset, setWeekOffset] = useState(0), [entries, setEntries] = useState<Entry[]>([]), [requests, setRequests] = useState<JoinRequest[]>([]), [teamUsers, setTeamUsers] = useState<JoinRequest[]>([]);
     const [reportMachineSettings, setReportMachineSettings] = useState<ReportMachineSettings>({ upperCompany: '', upperProject: '', upperFullName: '', upperEmployeeNumber: '', upperMachine: '', upperMachineNumber: '', lowerCompany: '', lowerProject: '', lowerFullName: '', lowerEmployeeNumber: '', lowerMachine: '', lowerMachineNumber: '' });
     const [reportSettingsNotice, setReportSettingsNotice] = useState('');
     const [reportHeaderSlot, setReportHeaderSlot] = useState<'upper' | 'lower'>('upper');
@@ -912,33 +913,14 @@ export default function Home() {
     } const bytes = await pdf.save();
  return new Blob([bytes], { type: 'application/pdf' });
  }
-    async function previewExactPdf() { const mobile = window.matchMedia('(max-width:700px)').matches, tab = mobile ? window.open('about:blank', '_blank') : null;
+    async function previewExactPdf() {
  setNotice('Tworzę podgląd…');
  const blob = await buildExactPdf();
  if (!blob) {
-        tab?.close();
-
         return;
-
-    } const url = URL.createObjectURL(blob);
- if (mobile) {
-        if (tab)
-            tab.location.href = url;
-
-        else
-            window.location.assign(url);
-
-        setTimeout(() => URL.revokeObjectURL(url), 60000);
-
     }
-
-    else {
-        if (pdfPreviewUrl)
-            URL.revokeObjectURL(pdfPreviewUrl);
-
-        setPdfPreviewUrl(url);
-
- } setNotice('Podgląd PDF gotowy');
+ setPdfPreviewBlob(blob);
+ setNotice('Podgląd PDF gotowy');
  }
     async function deleteEntry(entry: Entry) {
         const confirmation = lang === 'da' ? 'Er du sikker på, at du vil slette?' : lang === 'en' ? 'Are you sure you want to delete it?' : lang === 'lt' ? toLithuanian('Czy na pewno chcesz usunąć?') : 'Czy na pewno chcesz usunąć?';
@@ -1011,12 +993,10 @@ export default function Home() {
  const blob = await buildExactPdf();
  if (!blob)
         return;
- const url = URL.createObjectURL(blob), a = document.createElement('a');
- a.href = url;
- a.download = `TIMEREGISTRERING-uge-${weekNumber}.pdf`;
- a.click();
- setTimeout(() => URL.revokeObjectURL(url), 1000);
- setNotice('PDF pobrany');
+ // Android browsers can reject a synthetic link click after asynchronous PDF
+ // generation. Show a real, visible download link that the person taps.
+ setPdfPreviewBlob(blob);
+ setNotice(lang === 'da' ? 'PDF er klar — tryk på Download PDF.' : lang === 'en' ? 'PDF is ready — tap Download PDF.' : lang === 'lt' ? toLithuanian('PDF jest gotowy — naciśnij Pobierz PDF.') : 'PDF jest gotowy — naciśnij Pobierz PDF.');
  }
     async function shareExactPdf() { setNotice('Przygotowuję raport…'); const blob = await buildExactPdf(); if (!blob) return; const file = new File([blob], `TIMEREGISTRERING-uge-${weekNumber}.pdf`, { type: 'application/pdf' }); const title = `TIMEREGISTRERING - uge ${weekNumber}`; if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) { try { await navigator.share({ title, text: title, files: [file] }); setNotice('Raport udostępniony'); return; } catch (e) { if ((e as DOMException).name === 'AbortError') return; } } const subject = encodeURIComponent(title); window.location.href = `mailto:?subject=${subject}&body=${encodeURIComponent('Raport znajduje się w załączonym pliku PDF.')}`; setNotice('Wybierz program do wysłania raportu'); }
     if (loading)
@@ -1180,14 +1160,12 @@ export default function Home() {
 {periodWeeks.length > 1 && <div className="period-week-list">{periodWeeks.map(week => <div key={week.key}><span>{week.label}</span><strong>{week.hours} h · {week.km} km</strong></div>)}</div>}
 {!periodEntries.length && <p className="period-empty">{lang === 'da' ? 'Ingen registrerede timer i denne periode.' : lang === 'en' ? 'No hours recorded for this period.' : lang === 'lt' ? toLithuanian('Brak zapisanych godzin w tym okresie.') : 'Brak zapisanych godzin w tym okresie.'}</p>}
 </details>
-</details>}{pdfPreviewUrl && <div className="pdf-preview no-print" role="dialog" aria-modal="true" aria-label={lang === 'da' ? 'PDF-forhåndsvisning' : lang === 'en' ? 'PDF preview' : lang === 'lt' ? toLithuanian('Podgląd PDF') : 'Podgląd PDF'}>
+</details>}{pdfPreviewBlob && <div className="pdf-preview no-print" role="dialog" aria-modal="true" aria-label={lang === 'da' ? 'PDF-forhåndsvisning' : lang === 'en' ? 'PDF preview' : lang === 'lt' ? toLithuanian('Podgląd PDF') : 'Podgląd PDF'}>
 <div className="pdf-preview-bar">
 <strong>{lang === 'da' ? 'PDF-forhåndsvisning' : lang === 'en' ? 'PDF preview' : lang === 'lt' ? toLithuanian('Podgląd PDF') : 'Podgląd PDF'}</strong>
-<button className="secondary-button" onClick={() => { URL.revokeObjectURL(pdfPreviewUrl);
- setPdfPreviewUrl('');
- }}>{lang === 'da' ? 'Luk' : lang === 'en' ? 'Close' : lang === 'lt' ? toLithuanian('Zamknij') : 'Zamknij'}</button>
+<button className="secondary-button" onClick={() => setPdfPreviewBlob(null)}>{lang === 'da' ? 'Luk' : lang === 'en' ? 'Close' : lang === 'lt' ? toLithuanian('Zamknij') : 'Zamknij'}</button>
 </div>
-<iframe src={pdfPreviewUrl} title={lang === 'da' ? 'PDF-forhåndsvisning' : lang === 'en' ? 'PDF preview' : lang === 'lt' ? toLithuanian('Podgląd PDF') : 'Podgląd PDF'}/>
+<PdfPreview blob={pdfPreviewBlob} language={lang}/>
 </div>}{activePanel === 'worklog' && <details className="entry-card worklog-card no-print" open>
 <summary>{t.today}<span>⌄</span>
 </summary>
