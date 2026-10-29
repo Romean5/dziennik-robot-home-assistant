@@ -282,6 +282,11 @@ export default function Home() {
     const reportHeaderFieldKeys = reportHeaderSlot === 'upper'
         ? { company: 'upperCompany', project: 'upperProject', fullName: 'upperFullName', employeeNumber: 'upperEmployeeNumber', machine: 'upperMachine', machineNumber: 'upperMachineNumber' } as const
         : { company: 'lowerCompany', project: 'lowerProject', fullName: 'lowerFullName', employeeNumber: 'lowerEmployeeNumber', machine: 'lowerMachine', machineNumber: 'lowerMachineNumber' } as const;
+    const companyForReportSlot = (slot: '' | 'upper' | 'lower') => slot === 'upper'
+        ? reportMachineSettings.upperCompany
+        : slot === 'lower'
+            ? reportMachineSettings.lowerCompany
+            : '';
     function updateReportHeaderField(field: keyof typeof reportHeaderFieldKeys, value: string) {
         const key = reportHeaderFieldKeys[field];
         setReportMachineSettings(current => ({ ...current, [key]: value }));
@@ -642,7 +647,8 @@ export default function Home() {
         return;
     }
  if (entryType === 'worklog' && worklogStorage === 'device') { await saveDeviceWorklog(entryDate); return; }
- const pending: PendingEntry = { id: crypto.randomUUID(), owner: user ? ownerKey(user) : '', entryType, company, project: project.trim(), description: entryType === 'worklog' ? work.trim() : '', hours: entryType === 'timesheet' ? hours : '0', kilometers: entryType === 'timesheet' ? kilometers : '0', reportSlot: entryType === 'timesheet' ? projectReportSlot as 'upper' | 'lower' : 'auto', workDate: entryDate, latitude: entryType === 'worklog' && position ? String(position.lat) : '', longitude: entryType === 'worklog' && position ? String(position.lng) : '', files: entryType === 'worklog' ? files : [], createdAt: Date.now(), sourceLanguage: lang };
+ const entryCompany = entryType === 'timesheet' ? (companyForReportSlot(projectReportSlot) || defaultCompany || company) : company;
+ const pending: PendingEntry = { id: crypto.randomUUID(), owner: user ? ownerKey(user) : '', entryType, company: entryCompany, project: project.trim(), description: entryType === 'worklog' ? work.trim() : '', hours: entryType === 'timesheet' ? hours : '0', kilometers: entryType === 'timesheet' ? kilometers : '0', reportSlot: entryType === 'timesheet' ? projectReportSlot as 'upper' | 'lower' : 'auto', workDate: entryDate, latitude: entryType === 'worklog' && position ? String(position.lat) : '', longitude: entryType === 'worklog' && position ? String(position.lng) : '', files: entryType === 'worklog' ? files : [], createdAt: Date.now(), sourceLanguage: lang };
  setSaving(true);
  try { await writePendingEntry(pending); } catch { setSaving(false); setNotice(lang === 'pl' ? 'Nie udało się zapisać na urządzeniu. Nie zamykaj formularza.' : lang === 'da' ? 'Kunne ikke gemme på enheden. Hold formularen åben.' : 'Could not save on this device. Keep the form open.'); return; }
  setPendingEntries(current => [...current, pending]);
@@ -1117,10 +1123,6 @@ export default function Home() {
 <input type="number" min="0" step="1" inputMode="numeric" value={kilometers} onChange={e => setKilometers(e.target.value)}/>
 </label>
 </div>{pendingEntries.length > 0 && <p className="pending-sync">{lang === 'da' ? `Afventer serveren: ${pendingEntries.length}` : lang === 'en' ? `Waiting for server: ${pendingEntries.length}` : `Czeka na serwer: ${pendingEntries.length}`}</p>}
-<label className="field">
-<span>{lang === 'da' ? 'Kunde (denne dag)' : lang === 'en' ? 'Customer / company (this day)' : lang === 'lt' ? toLithuanian('Klient / firma (ten dzień)') : 'Klient / firma (ten dzień)'}</span>
-<input value={company} onChange={e => setCompany(e.target.value)}/>
-</label>
 <label className="field">
 <span>{lang === 'da' ? 'Arbejdsplads / adresse (denne dag)' : lang === 'en' ? 'Work site / address (this day)' : lang === 'lt' ? toLithuanian('Budowa / ulica (ten dzień)') : 'Budowa / ulica (ten dzień)'}</span>
 <input value={project} onChange={e => setProject(e.target.value)} list="project-list"/>

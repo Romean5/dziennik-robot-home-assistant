@@ -1,3 +1,8 @@
+# 0.2.12
+
+- Ewidencja godzin zawiera tylko datę, godziny, kilometry i budowę / ulicę.
+- Klient / firma dla wpisu godzinowego jest pobierany automatycznie ze stałych danych wybranego górnego albo dolnego raportu.
+
 # 0.2.11
 
 - W stałych danych najpierw widoczna jest duńska nazwa kratki z oryginalnego blankietu, a obok tłumaczenie w wybranym języku aplikacji.
