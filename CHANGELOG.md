@@ -1,3 +1,7 @@
+# 0.2.14
+
+- Konto z rolą administratora jest automatycznie aktywowane przy logowaniu, także w przypadku starszego błędnego wpisu ze statusem „oczekuje”. Zwykli nowi użytkownicy nadal wymagają zatwierdzenia administratora.
+
 # 0.2.13
 
 - Nowy ekran startowy z kafelkami: Karta pracy, Raport tygodniowy, Dzisiejszy wpis, Wspólne wpisy, Ustawienia oraz Użytkownicy zespołu dla administratora.

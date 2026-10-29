@@ -34,6 +34,15 @@ export async function POST(request: Request) {
         const retryAfter = await recordFailedLogin(nameKey, now);
         return json({ error: retryAfter ? 'too_many_attempts' : 'wrong_pin', ...(retryAfter ? { retryAfter } : {}) }, retryAfter ? 429 : 401, retryAfter ? { 'retry-after': String(retryAfter) } : undefined);
     }
+    // Administrator is created as active, but keep this self-healing guard for
+    // older databases where an administrator was accidentally left pending.
+    // It must never apply to ordinary team members: they still require approval.
+    if (user.role === 'admin' && user.status !== 'active') {
+        await env.DB.prepare("UPDATE users SET status='active' WHERE id=? AND team_id=?")
+            .bind(user.id, TEAM_ID)
+            .run();
+        user.status = 'active';
+    }
     if (user.status === 'active') await clearFailedLogins(nameKey);
     if (user.mustChangePin && user.pinResetExpiresAt !== null && user.pinResetExpiresAt < now) return json({ error: 'temporary_pin_expired' }, 401);
     if (user.status !== 'active') return json({ pending: true }, 202);
