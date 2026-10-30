@@ -1,3 +1,9 @@
+# 0.2.21
+
+- Karta pracy obsługuje teraz godzinę rozpoczęcia, zakończenia i przerwę w minutach.
+- Godziny do zapłaty są wyliczane automatycznie po odjęciu przerwy; w nietypowym dniu można je poprawić ręcznie.
+- Szczegóły czasu zapisu są widoczne przy wpisie tygodniowym, a PDF nadal otrzymuje wyłącznie końcową liczbę godzin.
+
 # 0.2.20
 
 - Przywrócono poprzedni, sprawdzony sposób podglądu PDF: na telefonie PDF otwiera się w osobnej karcie, a na komputerze w oknie podglądu aplikacji.

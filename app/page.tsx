@@ -59,6 +59,12 @@ type Entry = {
 
     kilometers: string;
 
+    startTime?: string;
+
+    endTime?: string;
+
+    breakMinutes?: string;
+
     workDate: string;
 
     /** Tydzień raportowy wybrany w chwili zapisu, np. 2026-W44. */
@@ -118,6 +124,9 @@ type PendingEntry = {
     description: string;
     hours: string;
     kilometers: string;
+    startTime: string;
+    endTime: string;
+    breakMinutes: string;
     reportSlot: 'auto' | 'upper' | 'lower';
     workDate: string;
     reportWeekKey?: string;
@@ -140,6 +149,26 @@ function ownerKey(value: Pick<User, 'id' | 'teamId' | 'name' | 'teamName'>) {
 function reportFieldLabel(lang: Language, english: string, polish: string, danish: string, lithuanian: string) {
     const translation = lang === 'da' ? danish : lang === 'lt' ? lithuanian : lang === 'pl' ? polish : english;
     return translation === danish ? danish : `${danish} — ${translation}`;
+}
+
+function calculatedPaidHours(startTime: string, endTime: string, breakMinutes: string) {
+    if (!/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime)) return '';
+    const asMinutes = (value: string) => Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5));
+    const start = asMinutes(startTime), end = asMinutes(endTime);
+    let duration = end - start;
+    if (duration < 0) duration += 24 * 60;
+    const pause = Number.parseInt(breakMinutes || '0', 10);
+    const payable = duration - (Number.isFinite(pause) ? pause : 0);
+    if (payable <= 0) return '';
+    return String(Math.round((payable / 60) * 100) / 100);
+}
+
+function timeSummary(entry: Pick<Entry, 'startTime' | 'endTime' | 'breakMinutes'>, lang: Language) {
+    if (!entry.startTime || !entry.endTime) return '';
+    const breakText = entry.breakMinutes && Number(entry.breakMinutes) > 0
+        ? ` · ${lang === 'da' ? 'pause' : lang === 'en' ? 'break' : lang === 'lt' ? 'pertrauka' : 'przerwa'} ${entry.breakMinutes} min`
+        : '';
+    return `${entry.startTime}–${entry.endTime}${breakText}`;
 }
 
 function ownerCacheKey(kind: 'entries' | 'projects', value: Pick<User, 'id' | 'teamId' | 'name' | 'teamName'>) {
@@ -273,7 +302,7 @@ export default function Home() {
     const [name, setName] = useState(''), [pin, setPin] = useState(''), [newPin, setNewPin] = useState(''), [authError, setAuthError] = useState(''), [temporaryPin, setTemporaryPin] = useState<{ name: string; pin: string } | null>(null);
     const [sharedProject, setSharedProject] = useState(''), [sharedScope, setSharedScope] = useState<'all' | 'mine'>('all');
 
-    const [project, setProject] = useState(''), [projects, setProjects] = useState<Project[]>([]), [projectReportSlot, setProjectReportSlot] = useState<'' | 'upper' | 'lower'>(''), [company, setCompany] = useState(''), [work, setWork] = useState(''), [hours, setHours] = useState(''), [kilometers, setKilometers] = useState(''), [workDate, setWorkDate] = useState(localToday()), [dateWasEdited, setDateWasEdited] = useState(false), [fullName, setFullName] = useState(''), [defaultCompany, setDefaultCompany] = useState(''), [defaultProject, setDefaultProject] = useState(''), [employeeNumber, setEmployeeNumber] = useState(''), [machine, setMachine] = useState(''), [machineNumber, setMachineNumber] = useState(''), [files, setFiles] = useState<File[]>([]), [worklogStorage, setWorklogStorage] = useState<'cloud' | 'device'>('cloud'), [deviceEntries, setDeviceEntries] = useState<DeviceEntry[]>([]), [pendingEntries, setPendingEntries] = useState<PendingEntry[]>([]), [position, setPosition] = useState<{
+    const [project, setProject] = useState(''), [projects, setProjects] = useState<Project[]>([]), [projectReportSlot, setProjectReportSlot] = useState<'' | 'upper' | 'lower'>(''), [company, setCompany] = useState(''), [work, setWork] = useState(''), [hours, setHours] = useState(''), [startTime, setStartTime] = useState(''), [endTime, setEndTime] = useState(''), [breakMinutes, setBreakMinutes] = useState('0'), [kilometers, setKilometers] = useState(''), [workDate, setWorkDate] = useState(localToday()), [dateWasEdited, setDateWasEdited] = useState(false), [fullName, setFullName] = useState(''), [defaultCompany, setDefaultCompany] = useState(''), [defaultProject, setDefaultProject] = useState(''), [employeeNumber, setEmployeeNumber] = useState(''), [machine, setMachine] = useState(''), [machineNumber, setMachineNumber] = useState(''), [files, setFiles] = useState<File[]>([]), [worklogStorage, setWorklogStorage] = useState<'cloud' | 'device'>('cloud'), [deviceEntries, setDeviceEntries] = useState<DeviceEntry[]>([]), [pendingEntries, setPendingEntries] = useState<PendingEntry[]>([]), [position, setPosition] = useState<{
         lat: number;
 
         lng: number;
@@ -374,15 +403,15 @@ export default function Home() {
         try { draft = JSON.parse(localStorage.getItem(`worklog_draft:${ownerKey(user)}`) || '{}'); } catch {}
         setCompany(draft.company ?? user.defaultCompany ?? '');
         setProject(draft.project ?? user.defaultProject ?? '');
-        setWork(draft.work ?? ''); setHours(draft.hours ?? ''); setKilometers(draft.kilometers ?? '');
+        setWork(draft.work ?? ''); setHours(draft.hours ?? ''); setStartTime(draft.startTime ?? ''); setEndTime(draft.endTime ?? ''); setBreakMinutes(draft.breakMinutes ?? '0'); setKilometers(draft.kilometers ?? '');
         setFiles([]); setPosition(null);
         setDateWasEdited(Boolean(draft.dateWasEdited));
         setWorkDate(draft.dateWasEdited && draft.workDate ? draft.workDate : localToday());
         setDraftReady(true);
     }, [user]);
     useEffect(() => { if (draftReady && user) {
-        try { localStorage.setItem(`worklog_draft:${ownerKey(user)}`, JSON.stringify({ company, project, work, hours, kilometers, workDate: dateWasEdited ? workDate : '', dateWasEdited })); } catch {}
-    } }, [draftReady, user, company, project, work, hours, kilometers, workDate, dateWasEdited]);
+        try { localStorage.setItem(`worklog_draft:${ownerKey(user)}`, JSON.stringify({ company, project, work, hours, startTime, endTime, breakMinutes, kilometers, workDate: dateWasEdited ? workDate : '', dateWasEdited })); } catch {}
+    } }, [draftReady, user, company, project, work, hours, startTime, endTime, breakMinutes, kilometers, workDate, dateWasEdited]);
 
     function syncProfile(value: User) { setFullName(value.fullName ?? '');
  setDefaultCompany(value.defaultCompany ?? '');
@@ -516,7 +545,7 @@ export default function Home() {
 
     } } catch { if (!value || !activeUser.current || ownerKey(value) !== ownerKey(activeUser.current)) return; try { const cached = value ? JSON.parse(localStorage.getItem(ownerCacheKey('projects', value)) || '[]') : []; if (Array.isArray(cached)) setProjects(cached); } catch {} } }
     function pendingAsEntry(p: PendingEntry): Entry {
-        return { id: p.id, entryType: p.entryType, company: p.company, project: p.project, description: p.description, author: user?.name ?? '', createdAt: p.createdAt, photoCount: p.files.length, hours: p.hours, kilometers: p.kilometers, workDate: p.workDate, reportWeekKey: p.reportWeekKey, reportSlot: p.reportSlot, latitude: p.latitude, longitude: p.longitude, pending: true, sourceLanguage: p.sourceLanguage ?? lang };
+        return { id: p.id, entryType: p.entryType, company: p.company, project: p.project, description: p.description, author: user?.name ?? '', createdAt: p.createdAt, photoCount: p.files.length, hours: p.hours, kilometers: p.kilometers, startTime: p.startTime, endTime: p.endTime, breakMinutes: p.breakMinutes, workDate: p.workDate, reportWeekKey: p.reportWeekKey, reportSlot: p.reportSlot, latitude: p.latitude, longitude: p.longitude, pending: true, sourceLanguage: p.sourceLanguage ?? lang };
     }
     function pendingForm(p: PendingEntry) {
         const form = new FormData();
@@ -528,6 +557,9 @@ export default function Home() {
         form.set('description', p.description);
         form.set('sourceLanguage', p.sourceLanguage ?? lang);
         form.set('hours', p.hours);
+        form.set('startTime', p.startTime ?? '');
+        form.set('endTime', p.endTime ?? '');
+        form.set('breakMinutes', p.breakMinutes ?? '');
         form.set('kilometers', p.kilometers);
         form.set('reportSlot', p.reportSlot);
         form.set('workDate', p.workDate);
@@ -653,7 +685,7 @@ export default function Home() {
     } else if (result.error === 'choose_new_pin') setNotice(lang === 'da' ? 'Vælg en anden PIN end den midlertidige.' : lang === 'en' ? 'Choose a PIN different from the temporary one.' : lang === 'lt' ? toLithuanian('Wybierz PIN inny niż tymczasowy.') : 'Wybierz PIN inny niż tymczasowy.'); }
     async function logout() {
  activeUser.current = null; setUser(null); setEntries([]); setDeviceEntries([]); setPendingEntries([]); setProjects([]); setTeamUsers([]); setRequests([]); setDraftReady(false);
- setWork(''); setHours(''); setKilometers(''); setProject(''); setCompany(''); setFiles([]);
+ setWork(''); setHours(''); setStartTime(''); setEndTime(''); setBreakMinutes('0'); setKilometers(''); setProject(''); setCompany(''); setFiles([]);
  localStorage.removeItem('dziennik-offline-user');
  try { await fetch('/api/logout', { method: 'POST' }); } catch {}
  }
@@ -703,13 +735,17 @@ export default function Home() {
     async function saveEntry(entryType: 'timesheet' | 'worklog') { const entryDate = dateWasEdited ? workDate : localToday();
  if (!project.trim() || !entryDate || (entryType === 'timesheet' ? (!hours && !kilometers) : !work.trim()))
         return;
+ if (entryType === 'timesheet' && (startTime || endTime) && !calculatedPaidHours(startTime, endTime, breakMinutes)) {
+        setNotice(lang === 'da' ? 'Kontrollér start, slut og pause.' : lang === 'en' ? 'Check the start, end and break times.' : lang === 'lt' ? 'Patikrinkite pradžios, pabaigos ir pertraukos laiką.' : 'Sprawdź godzinę rozpoczęcia, zakończenia i przerwę.');
+        return;
+    }
  if (entryType === 'timesheet' && projectReportSlot !== 'upper' && projectReportSlot !== 'lower') {
         setNotice(lang === 'da' ? 'Vælg øverste eller nederste rapport.' : lang === 'en' ? 'Choose the upper or lower report.' : lang === 'lt' ? toLithuanian('Wybierz górny albo dolny raport.') : 'Wybierz górny albo dolny raport.');
         return;
     }
  if (entryType === 'worklog' && worklogStorage === 'device') { await saveDeviceWorklog(entryDate); return; }
  const entryCompany = entryType === 'timesheet' ? (companyForReportSlot(projectReportSlot) || defaultCompany || company) : company;
- const pending: PendingEntry = { id: crypto.randomUUID(), owner: user ? ownerKey(user) : '', entryType, company: entryCompany, project: project.trim(), description: entryType === 'worklog' ? work.trim() : '', hours: entryType === 'timesheet' ? hours : '0', kilometers: entryType === 'timesheet' ? kilometers : '0', reportSlot: entryType === 'timesheet' ? projectReportSlot as 'upper' | 'lower' : 'auto', workDate: entryDate, reportWeekKey: entryType === 'timesheet' ? reportWeekKey : '', latitude: entryType === 'worklog' && position ? String(position.lat) : '', longitude: entryType === 'worklog' && position ? String(position.lng) : '', files: entryType === 'worklog' ? files : [], createdAt: Date.now(), sourceLanguage: lang };
+ const pending: PendingEntry = { id: crypto.randomUUID(), owner: user ? ownerKey(user) : '', entryType, company: entryCompany, project: project.trim(), description: entryType === 'worklog' ? work.trim() : '', hours: entryType === 'timesheet' ? hours : '0', kilometers: entryType === 'timesheet' ? kilometers : '0', startTime: entryType === 'timesheet' ? startTime : '', endTime: entryType === 'timesheet' ? endTime : '', breakMinutes: entryType === 'timesheet' ? breakMinutes : '', reportSlot: entryType === 'timesheet' ? projectReportSlot as 'upper' | 'lower' : 'auto', workDate: entryDate, reportWeekKey: entryType === 'timesheet' ? reportWeekKey : '', latitude: entryType === 'worklog' && position ? String(position.lat) : '', longitude: entryType === 'worklog' && position ? String(position.lng) : '', files: entryType === 'worklog' ? files : [], createdAt: Date.now(), sourceLanguage: lang };
  setSaving(true);
  try { await writePendingEntry(pending); } catch { setSaving(false); setNotice(lang === 'pl' ? 'Nie udało się zapisać na urządzeniu. Nie zamykaj formularza.' : lang === 'da' ? 'Kunne ikke gemme på enheden. Hold formularen åben.' : 'Could not save on this device. Keep the form open.'); return; }
  setPendingEntries(current => [...current, pending]);
@@ -745,6 +781,9 @@ export default function Home() {
         }
         if (entryType === 'timesheet') {
             setHours('');
+            setStartTime('');
+            setEndTime('');
+            setBreakMinutes('0');
             setKilometers('');
             setProjectReportSlot('');
 
@@ -1167,14 +1206,26 @@ export default function Home() {
  }}/>
 </label>
 <label className="field">
-<span>{lang === 'da' ? 'Timer' : lang === 'en' ? 'Hours' : lang === 'lt' ? toLithuanian('Godziny') : 'Godziny'}</span>
+<span>{lang === 'da' ? 'Fra kl.' : lang === 'en' ? 'From' : lang === 'lt' ? 'Nuo' : 'Od'}</span>
+<input type="time" value={startTime} onChange={e => { const next = e.target.value; setStartTime(next); const calculated = calculatedPaidHours(next, endTime, breakMinutes); if (calculated) setHours(calculated); }}/>
+</label>
+<label className="field">
+<span>{lang === 'da' ? 'Til kl.' : lang === 'en' ? 'To' : lang === 'lt' ? 'Iki' : 'Do'}</span>
+<input type="time" value={endTime} onChange={e => { const next = e.target.value; setEndTime(next); const calculated = calculatedPaidHours(startTime, next, breakMinutes); if (calculated) setHours(calculated); }}/>
+</label>
+<label className="field">
+<span>{lang === 'da' ? 'Pause (min.)' : lang === 'en' ? 'Break (min)' : lang === 'lt' ? 'Pertrauka (min.)' : 'Przerwa (min)'}</span>
+<input type="number" min="0" max="720" step="5" inputMode="numeric" value={breakMinutes} onChange={e => { const next = e.target.value; setBreakMinutes(next); const calculated = calculatedPaidHours(startTime, endTime, next); if (calculated) setHours(calculated); }}/>
+</label>
+<label className="field">
+<span>{lang === 'da' ? 'Timer til løn' : lang === 'en' ? 'Paid hours' : lang === 'lt' ? 'Apmokamos valandos' : 'Godziny do zapłaty'}</span>
 <input type="number" min="0" step="0.25" inputMode="decimal" value={hours} onChange={e => setHours(e.target.value)}/>
 </label>
 <label className="field">
 <span>{lang === 'da' ? 'Kilometer' : lang === 'en' ? 'Kilometres' : lang === 'lt' ? toLithuanian('Kilometry') : 'Kilometry'}</span>
 <input type="number" min="0" step="1" inputMode="numeric" value={kilometers} onChange={e => setKilometers(e.target.value)}/>
 </label>
-</div>{pendingEntries.length > 0 && <p className="pending-sync">{lang === 'da' ? `Afventer serveren: ${pendingEntries.length}` : lang === 'en' ? `Waiting for server: ${pendingEntries.length}` : `Czeka na serwer: ${pendingEntries.length}`}</p>}
+</div><p className="report-target-note">{lang === 'da' ? 'Timer til løn beregnes automatisk efter pause. Du kan rette tallet manuelt ved særlige dage.' : lang === 'en' ? 'Paid hours are calculated after the break. You can correct the value manually for unusual days.' : lang === 'lt' ? 'Apmokamos valandos apskaičiuojamos atėmus pertrauką. Neįprastą dieną galite pataisyti skaičių rankiniu būdu.' : 'Godziny do zapłaty wyliczają się po odjęciu przerwy. W wyjątkowy dzień możesz poprawić liczbę ręcznie.'}</p>{pendingEntries.length > 0 && <p className="pending-sync">{lang === 'da' ? `Afventer serveren: ${pendingEntries.length}` : lang === 'en' ? `Waiting for server: ${pendingEntries.length}` : `Czeka na serwer: ${pendingEntries.length}`}</p>}
 <label className="field">
 <span>{lang === 'da' ? 'Arbejdsplads / adresse (denne dag)' : lang === 'en' ? 'Work site / address (this day)' : lang === 'lt' ? toLithuanian('Budowa / ulica (ten dzień)') : 'Budowa / ulica (ten dzień)'}</span>
 <input value={project} onChange={e => setProject(e.target.value)} list="project-list"/>
@@ -1195,7 +1246,7 @@ export default function Home() {
 <button onClick={() => setWeekOffset(x => Math.min(0, x + 1))} disabled={weekOffset >= 0} aria-label={lang === 'da' ? 'Næste uge' : lang === 'en' ? 'Next week' : lang === 'lt' ? toLithuanian('Następny tydzień') : 'Następny tydzień'}>›</button>
 </div>
 <p>{weekEntries.length} {lang === 'da' ? 'dage' : lang === 'en' ? 'days' : lang === 'lt' ? toLithuanian('dni') : 'dni'} · {totalHours} h · {totalKm} km</p>
-<div className="timesheet-entry-list">{weekEntries.map(e => <div className="timesheet-entry-row" key={e.id}><span><strong>{effectiveWorkDate(e)}</strong> · {e.project} · {e.hours || '0'} h · {e.kilometers || '0'} km · {e.reportSlot === 'upper' ? (lang === 'da' ? 'Øverste rapport' : lang === 'en' ? 'Upper report' : lang === 'lt' ? toLithuanian('Górny raport') : 'Górny raport') : e.reportSlot === 'lower' ? (lang === 'da' ? 'Nederste rapport' : lang === 'en' ? 'Lower report' : lang === 'lt' ? toLithuanian('Dolny raport') : 'Dolny raport') : (lang === 'da' ? 'Automatisk' : lang === 'en' ? 'Automatic' : lang === 'lt' ? toLithuanian('Automatycznie') : 'Automatycznie')}</span><button className="table-delete" onClick={() => deleteEntry(e)}>{lang === 'da' ? 'Slet' : lang === 'en' ? 'Delete' : lang === 'lt' ? toLithuanian('Usuń') : 'Usuń'}</button></div>)}</div>
+<div className="timesheet-entry-list">{weekEntries.map(e => <div className="timesheet-entry-row" key={e.id}><span><strong>{effectiveWorkDate(e)}</strong> · {e.project} · {e.hours || '0'} h{timeSummary(e, lang) ? ` (${timeSummary(e, lang)})` : ''} · {e.kilometers || '0'} km · {e.reportSlot === 'upper' ? (lang === 'da' ? 'Øverste rapport' : lang === 'en' ? 'Upper report' : lang === 'lt' ? toLithuanian('Górny raport') : 'Górny raport') : e.reportSlot === 'lower' ? (lang === 'da' ? 'Nederste rapport' : lang === 'en' ? 'Lower report' : lang === 'lt' ? toLithuanian('Dolny raport') : 'Dolny raport') : (lang === 'da' ? 'Automatisk' : lang === 'en' ? 'Automatic' : lang === 'lt' ? toLithuanian('Automatycznie') : 'Automatycznie')}</span><button className="table-delete" onClick={() => deleteEntry(e)}>{lang === 'da' ? 'Slet' : lang === 'en' ? 'Delete' : lang === 'lt' ? toLithuanian('Usuń') : 'Usuń'}</button></div>)}</div>
 </div>
 <div className="report-actions">
 <button className="secondary-button" onClick={previewExactPdf} disabled={!weekEntries.length}>{lang === 'da' ? 'Vis PDF' : lang === 'en' ? 'Preview PDF' : lang === 'lt' ? toLithuanian('Podgląd PDF') : 'Podgląd PDF'}</button>
