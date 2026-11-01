@@ -154,7 +154,14 @@ button,label { -webkit-tap-highlight-color:transparent; }
 .pdf-fallback-link { display:block; width:max-content; margin:0 auto 16px; text-decoration:none; }
 @keyframes pulse { 50% { opacity:.68; } }
 @keyframes spin { to { transform:rotate(360deg); } }
-@media(max-width:460px) { .language-select>span{display:none} .entry-card{padding:15px;border-radius:18px} .actions-grid{grid-template-columns:1fr} .pin-row{grid-template-columns:1fr}.topbar h1{font-size:19px} .dashboard-tile{min-height:108px;padding:13px}.dashboard-tile strong{font-size:14px} }
+@media(max-width:560px) {
+  .dashboard-tiles { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:2px 0 14px; }
+  .dashboard-tile { display:flex; min-height:88px; padding:10px 7px; border-radius:14px; align-items:center; flex-direction:column; justify-content:center; text-align:center; }
+  .dashboard-tile>span { width:27px; height:27px; margin:0 0 7px; border-radius:9px; font-size:15px; }
+  .dashboard-tile strong { font-size:12px; line-height:1.15; overflow-wrap:anywhere; }
+  .dashboard-tile small { display:none; }
+}
+@media(max-width:460px) { .language-select>span{display:none} .entry-card{padding:15px;border-radius:18px} .actions-grid{grid-template-columns:1fr} .pin-row{grid-template-columns:1fr}.topbar h1{font-size:19px} }
 @media(max-width:560px) { .compact-grid,.shared-filters{grid-template-columns:1fr}.report-card{align-items:stretch;flex-direction:column}.report-actions{display:grid;grid-template-columns:1fr 1fr}.report-button{width:100%}.period-controls{grid-template-columns:1fr}.period-week-list>div{font-size:12px}.report-machine-grid{grid-template-columns:1fr} }
 @media print { @page{size:A4;margin:12mm} body{background:white}.app-shell{width:100%;padding:0}.topbar,.logout,.no-print{display:none!important}.print-report{display:block;color:#111}.print-report h1{margin:0 0 12mm;font-size:22px}.report-meta{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;margin-bottom:8mm}.report-meta p{margin:0}.print-report table{width:100%;border-collapse:collapse;font-size:11px}.print-report th,.print-report td{border:1px solid #555;padding:6px;text-align:left;vertical-align:top}.print-report th:nth-last-child(-n+2),.print-report td:nth-last-child(-n+2){text-align:right}.print-report tfoot th{font-size:12px} }
 

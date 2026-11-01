@@ -1,3 +1,8 @@
+# 0.2.22
+
+- Na telefonach kafelki pulpitu układają się po trzy w wierszu, są wyraźnie mniejsze i po kliknięciu nadal pokazują aktywny wybór.
+- Widok komputerowy pozostaje bez zmian.
+
 # 0.2.21
 
 - Karta pracy obsługuje teraz godzinę rozpoczęcia, zakończenia i przerwę w minutach.
