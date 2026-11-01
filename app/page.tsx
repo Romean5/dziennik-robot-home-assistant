@@ -1228,7 +1228,10 @@ export default function Home() {
 </div><p className="report-target-note">{lang === 'da' ? 'Timer til løn beregnes automatisk efter pause. Du kan rette tallet manuelt ved særlige dage.' : lang === 'en' ? 'Paid hours are calculated after the break. You can correct the value manually for unusual days.' : lang === 'lt' ? 'Apmokamos valandos apskaičiuojamos atėmus pertrauką. Neįprastą dieną galite pataisyti skaičių rankiniu būdu.' : 'Godziny do zapłaty wyliczają się po odjęciu przerwy. W wyjątkowy dzień możesz poprawić liczbę ręcznie.'}</p>{pendingEntries.length > 0 && <p className="pending-sync">{lang === 'da' ? `Afventer serveren: ${pendingEntries.length}` : lang === 'en' ? `Waiting for server: ${pendingEntries.length}` : `Czeka na serwer: ${pendingEntries.length}`}</p>}
 <label className="field">
 <span>{lang === 'da' ? 'Arbejdsplads / adresse (denne dag)' : lang === 'en' ? 'Work site / address (this day)' : lang === 'lt' ? toLithuanian('Budowa / ulica (ten dzień)') : 'Budowa / ulica (ten dzień)'}</span>
+<div className="project-picker-row">
 <input value={project} onChange={e => setProject(e.target.value)} list="project-list"/>
+<select className="project-picker-trigger" value="" aria-label={lang === 'da' ? 'Vælg gemt byggeplads' : lang === 'en' ? 'Choose a saved site' : lang === 'lt' ? toLithuanian('Wybierz zapisaną ulicę') : 'Wybierz zapisaną ulicę'} onChange={e => { if (e.target.value) setProject(e.target.value); }}><option value="">⌄</option>{projects.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}</select>
+</div>
 <datalist id="project-list">{projects.map(p => <option key={p.id} value={p.name}/>)}</datalist>
 </label>
 <label className="field report-slot-select"><span>{lang === 'da' ? 'Gem i rapport' : lang === 'en' ? 'Save to report' : lang === 'lt' ? toLithuanian('Zapisz w raporcie') : 'Zapisz w raporcie'}</span><select value={projectReportSlot} onChange={e => setProjectReportSlot(e.target.value as '' | 'upper' | 'lower')}><option value="">{lang === 'da' ? 'Vælg rapport…' : lang === 'en' ? 'Choose a report…' : lang === 'lt' ? toLithuanian('Wybierz raport…') : 'Wybierz raport…'}</option><option value="upper">{lang === 'da' ? 'Øverste rapport' : lang === 'en' ? 'Upper report' : lang === 'lt' ? toLithuanian('Górny raport') : 'Górny raport'}</option><option value="lower">{lang === 'da' ? 'Nederste rapport' : lang === 'en' ? 'Lower report' : lang === 'lt' ? toLithuanian('Dolny raport') : 'Dolny raport'}</option></select></label>
@@ -1276,7 +1279,10 @@ export default function Home() {
 <label className="field"><span>{lang === 'da' ? 'Gem som' : lang === 'en' ? 'Save as' : lang === 'lt' ? toLithuanian('Zapisz jako') : 'Zapisz jako'}</span><select value={worklogStorage} onChange={e => setWorklogStorage(e.target.value as 'cloud' | 'device')}><option value="cloud">{lang === 'da' ? 'I skyen — synlig for teamet' : lang === 'en' ? 'In the cloud — visible to the team' : lang === 'lt' ? toLithuanian('W chmurze — widoczne dla zespołu') : 'W chmurze — widoczne dla zespołu'}</option><option value="device">{lang === 'da' ? 'Kun på denne telefon' : lang === 'en' ? 'Only on this device' : lang === 'lt' ? toLithuanian('Tylko na tym telefonie') : 'Tylko na tym telefonie'}</option></select></label>
 <label className="field">
 <span>{t.project}</span>
+<div className="project-picker-row">
 <input value={project} onChange={e => setProject(e.target.value)} list="project-list"/>
+<select className="project-picker-trigger" value="" aria-label={lang === 'da' ? 'Vælg gemt byggeplads' : lang === 'en' ? 'Choose a saved site' : lang === 'lt' ? toLithuanian('Wybierz zapisaną ulicę') : 'Wybierz zapisaną ulicę'} onChange={e => { if (e.target.value) setProject(e.target.value); }}><option value="">⌄</option>{projects.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}</select>
+</div>
 </label>
 <label className="field">
 <span>{t.work}</span>

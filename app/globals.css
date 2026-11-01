@@ -83,6 +83,8 @@ button,label { -webkit-tap-highlight-color:transparent; }
 .field { display:block; margin-top:16px; }
 .field>span { display:block; margin-bottom:7px; font-size:13px; font-weight:750; }
 .field input,.field textarea,.field select { width:100%; border:1px solid #ccd7d0; border-radius:13px; background:#fbfcfb; padding:13px 14px; color:var(--ink); outline:none; resize:vertical; }
+.project-picker-row { display:grid; grid-template-columns:minmax(0,1fr) 52px; gap:8px; }
+.field .project-picker-trigger { min-width:0; padding:0; border-radius:13px; color:var(--green-dark); font-size:25px; font-weight:850; line-height:1; text-align:center; cursor:pointer; }
 .field textarea { min-height:120px; }
 .field input:focus,.field textarea:focus { border-color:var(--green); box-shadow:0 0 0 3px #176b4317; }
 .voice-button { width:100%; min-height:64px; margin-top:10px; border:0; border-radius:15px; background:var(--mint); color:var(--green-dark); font-weight:800; font-size:17px; }

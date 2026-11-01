@@ -1,3 +1,8 @@
+# 0.2.23
+
+- Pole „Budowa / ulica (ten dzień)” ma teraz niezawodną strzałkę otwierającą listę zapisanych ulic, niezależnie od telefonu.
+- Nadal można wpisać nową ulicę ręcznie albo skorzystać z podpowiedzi po pierwszych literach.
+
 # 0.2.22
 
 - Na telefonach kafelki pulpitu układają się po trzy w wierszu, są wyraźnie mniejsze i po kliknięciu nadal pokazują aktywny wybór.
