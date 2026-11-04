@@ -1,3 +1,7 @@
+# 0.2.24
+
+- Przy zdjęciach we wpisie jest przycisk „Wyślij zdjęcia”. Zbiera wszystkie zdjęcia z danego wpisu w jeden plik ZIP i otwiera systemowe „Wyślij za pomocą” (np. WhatsApp, e-mail lub Bluetooth). Jeżeli telefon nie obsługuje bezpośredniego wysyłania, plik ZIP zostanie pobrany.
+
 # 0.2.23
 
 - Pole „Budowa / ulica (ten dzień)” ma teraz niezawodną strzałkę otwierającą listę zapisanych ulic, niezależnie od telefonu.
