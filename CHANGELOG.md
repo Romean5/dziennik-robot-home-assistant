@@ -1,3 +1,8 @@
+# 0.2.25
+
+- „Wyślij zdjęcia” przekazuje teraz wszystkie fotografie bezpośrednio do wybranej aplikacji telefonu, np. WhatsAppa lub poczty — bez ZIP-a i bez rozpakowywania. ZIP pozostaje wyłącznie awaryjnie dla bardzo starych urządzeń, które nie obsługują wysłania wielu zdjęć naraz.
+- Usuwanie zdjęcia zawsze wymaga teraz wyraźnego potwierdzenia; komunikat ostrzega, że operacji nie można cofnąć.
+
 # 0.2.24
 
 - Przy zdjęciach we wpisie jest przycisk „Wyślij zdjęcia”. Zbiera wszystkie zdjęcia z danego wpisu w jeden plik ZIP i otwiera systemowe „Wyślij za pomocą” (np. WhatsApp, e-mail lub Bluetooth). Jeżeli telefon nie obsługuje bezpośredniego wysyłania, plik ZIP zostanie pobrany.

@@ -75,12 +75,12 @@ export default function EntryPhotos({ entryId, count, files, language, canDelete
     const [shareMessage, setShareMessage] = useState('');
     const [error, setError] = useState(false);
     const labels = language === 'lt'
-        ? { open: 'Peržiūrėti nuotraukas', close: 'Uždaryti', previous: 'Ankstesnė', next: 'Kita', error: 'Nuotraukų nepavyko įkelti. Bandykite dar kartą, kai serveris vėl veiks.', loading: 'Įkeliama…', original: 'Atidaryti visu dydžiu', photo: 'Nuotrauka', delete: 'Ištrinti nuotrauką', confirm: 'Ar tikrai norite ištrinti?', failed: 'Nuotraukos nepavyko ištrinti.', share: 'Siųsti nuotraukas', sharing: 'Ruošiamas failas…', shared: 'Pasirinkite programą, kuria norite siųsti.', downloaded: 'ZIP failas atsisiųstas.', shareFailed: 'Nepavyko paruošti nuotraukų siuntimui.' }
+        ? { open: 'Peržiūrėti nuotraukas', close: 'Uždaryti', previous: 'Ankstesnė', next: 'Kita', error: 'Nuotraukų nepavyko įkelti. Bandykite dar kartą, kai serveris vėl veiks.', loading: 'Įkeliama…', original: 'Atidaryti visu dydžiu', photo: 'Nuotrauka', delete: 'Ištrinti nuotrauką', confirm: 'Ar tikrai norite ištrinti šią nuotrauką? Šio veiksmo negalima anuliuoti.', failed: 'Nuotraukos nepavyko ištrinti.', share: 'Siųsti nuotraukas', sharing: 'Ruošiamos nuotraukos…', shared: 'Pasirinkite programą, kuria norite siųsti.', downloaded: 'Telefonas nepalaiko tiesioginio siuntimo — ZIP failas atsisiųstas.', shareFailed: 'Nepavyko paruošti nuotraukų siuntimui.' }
         : language === 'da'
-        ? { open: 'Se billeder', close: 'Luk', previous: 'Forrige', next: 'Næste', error: 'Billederne kunne ikke indlæses. Prøv igen, når serveren er tilgængelig.', loading: 'Indlæser…', original: 'Åbn i fuld størrelse', photo: 'Billede', delete: 'Slet billede', confirm: 'Er du sikker på, at du vil slette?', failed: 'Billedet kunne ikke slettes.', share: 'Send billeder', sharing: 'Forbereder fil…', shared: 'Vælg appen til at sende billederne.', downloaded: 'ZIP-filen er hentet.', shareFailed: 'Billederne kunne ikke klargøres til deling.' }
+        ? { open: 'Se billeder', close: 'Luk', previous: 'Forrige', next: 'Næste', error: 'Billederne kunne ikke indlæses. Prøv igen, når serveren er tilgængelig.', loading: 'Indlæser…', original: 'Åbn i fuld størrelse', photo: 'Billede', delete: 'Slet billede', confirm: 'Er du sikker på, at du vil slette dette billede? Handlingen kan ikke fortrydes.', failed: 'Billedet kunne ikke slettes.', share: 'Send billeder', sharing: 'Forbereder billeder…', shared: 'Vælg appen til at sende billederne.', downloaded: 'Telefonen understøtter ikke direkte deling — ZIP-filen er hentet.', shareFailed: 'Billederne kunne ikke klargøres til deling.' }
         : language === 'en'
-        ? { open: 'View photos', close: 'Close', previous: 'Previous', next: 'Next', error: 'Could not load photos. Try again when the server is available.', loading: 'Loading…', original: 'Open full size', photo: 'Photo', delete: 'Delete photo', confirm: 'Are you sure you want to delete it?', failed: 'The photo could not be deleted.', share: 'Send photos', sharing: 'Preparing file…', shared: 'Choose an app to send the photos.', downloaded: 'The ZIP file was downloaded.', shareFailed: 'Could not prepare the photos for sharing.' }
-        : { open: 'Zobacz zdjęcia', close: 'Zamknij', previous: 'Poprzednie', next: 'Następne', error: 'Nie udało się wczytać zdjęć. Spróbuj ponownie, gdy serwer będzie dostępny.', loading: 'Wczytywanie…', original: 'Otwórz w pełnym rozmiarze', photo: 'Zdjęcie', delete: 'Usuń zdjęcie', confirm: 'Czy na pewno chcesz usunąć?', failed: 'Nie udało się usunąć zdjęcia.', share: 'Wyślij zdjęcia', sharing: 'Przygotowuję plik…', shared: 'Wybierz aplikację, przez którą chcesz wysłać zdjęcia.', downloaded: 'Plik ZIP został pobrany.', shareFailed: 'Nie udało się przygotować zdjęć do wysłania.' };
+        ? { open: 'View photos', close: 'Close', previous: 'Previous', next: 'Next', error: 'Could not load photos. Try again when the server is available.', loading: 'Loading…', original: 'Open full size', photo: 'Photo', delete: 'Delete photo', confirm: 'Are you sure you want to delete this photo? This cannot be undone.', failed: 'The photo could not be deleted.', share: 'Send photos', sharing: 'Preparing photos…', shared: 'Choose an app to send the photos.', downloaded: 'The phone does not support direct sharing — the ZIP file was downloaded.', shareFailed: 'Could not prepare the photos for sharing.' }
+        : { open: 'Zobacz zdjęcia', close: 'Zamknij', previous: 'Poprzednie', next: 'Następne', error: 'Nie udało się wczytać zdjęć. Spróbuj ponownie, gdy serwer będzie dostępny.', loading: 'Wczytywanie…', original: 'Otwórz w pełnym rozmiarze', photo: 'Zdjęcie', delete: 'Usuń zdjęcie', confirm: 'Czy na pewno chcesz usunąć to zdjęcie? Tej operacji nie można cofnąć.', failed: 'Nie udało się usunąć zdjęcia.', share: 'Wyślij zdjęcia', sharing: 'Przygotowuję zdjęcia…', shared: 'Wybierz aplikację, przez którą chcesz wysłać zdjęcia.', downloaded: 'Ten telefon nie obsługuje bezpośredniego wysyłania — plik ZIP został pobrany.', shareFailed: 'Nie udało się przygotować zdjęć do wysłania.' };
 
     useEffect(() => () => { objectUrls.current.forEach(url => URL.revokeObjectURL(url)); objectUrls.current.clear(); }, []);
 
@@ -120,9 +120,8 @@ export default function EntryPhotos({ entryId, count, files, language, canDelete
                     return { name: `zdjecie-${index + 1}${photoExtension(blob.type)}`, blob };
                 }));
             }
-            const zip = createZip(await Promise.all(archivePhotos.map(async photo => ({ name: photo.name, data: new Uint8Array(await photo.blob.arrayBuffer()) }))));
-            const archive = new File([zip], `zdjecia-${entryId.slice(0, 8)}.zip`, { type: 'application/zip' });
-            const shareData = { title: labels.share, text: labels.share, files: [archive] };
+            const shareFiles = archivePhotos.map(photo => new File([photo.blob], photo.name, { type: photo.blob.type || 'image/jpeg' }));
+            const shareData = { title: labels.share, text: labels.share, files: shareFiles };
             if (navigator.share && (!navigator.canShare || navigator.canShare(shareData))) {
                 try {
                     await navigator.share(shareData);
@@ -132,6 +131,8 @@ export default function EntryPhotos({ entryId, count, files, language, canDelete
                     if ((shareError as DOMException).name === 'AbortError') return;
                 }
             }
+            const zip = createZip(await Promise.all(archivePhotos.map(async photo => ({ name: photo.name, data: new Uint8Array(await photo.blob.arrayBuffer()) }))));
+            const archive = new File([zip], `zdjecia-${entryId.slice(0, 8)}.zip`, { type: 'application/zip' });
             const downloadUrl = URL.createObjectURL(archive);
             const link = document.createElement('a'); link.href = downloadUrl; link.download = archive.name; link.click();
             window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
