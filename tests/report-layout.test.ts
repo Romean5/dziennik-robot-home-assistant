@@ -73,3 +73,33 @@ test('dwie ulice tego samego dnia zachowują osobne wiersze i godziny', () => {
     ]);
     assert.equal(pages[0].upper?.reduce((sum, e) => sum + Number(e.hours), 0), 7);
 });
+
+test('zmiana ulicy bez nazwy firmy dodaje wiersz do tego samego blankietu', () => {
+    for (const slot of ['upper', 'lower'] as const) {
+        const first = { ...row('first', '2026-11-10', slot, ''), project: 'Ulica A' };
+        const second = { ...row('second', '2026-11-10', slot, ''), project: 'Ulica B' };
+        const pages = buildReportPages([first, second], '');
+        assert.equal(pages.length, 1);
+        assert.deepEqual(pages[0][slot]?.map(e => e.id), ['first', 'second']);
+        assert.equal(pages[0][slot === 'upper' ? 'lower' : 'upper'], undefined);
+    }
+});
+
+test('brakująca firma korzysta z nagłówka wybranego blankietu', () => {
+    const pages = buildReportPages([
+        { ...row('old', '2026-11-10', 'lower', ''), project: 'Ulica A' },
+        { ...row('new', '2026-11-10', 'lower', 'Firma Dolna'), project: 'Ulica B' },
+    ], { upper: 'Firma Górna', lower: 'Firma Dolna' });
+    assert.equal(pages.length, 1);
+    assert.deepEqual(pages[0].lower?.map(e => e.id), ['new', 'old']);
+    assert.equal(pages[0].upper, undefined);
+});
+
+test('różne odstępy w nazwie firmy nie rozdzielają ulic', () => {
+    const pages = buildReportPages([
+        row('a', '2026-11-10', 'upper', 'Firma   A'),
+        { ...row('b', '2026-11-10', 'upper', 'firma A'), project: 'Ulica B' },
+    ], '');
+    assert.equal(pages.length, 1);
+    assert.equal(pages[0].upper?.length, 2);
+});

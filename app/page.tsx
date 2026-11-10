@@ -404,6 +404,7 @@ export default function Home() {
         try { draft = JSON.parse(localStorage.getItem(`worklog_draft:${ownerKey(user)}`) || '{}'); } catch {}
         setCompany(draft.company ?? user.defaultCompany ?? '');
         setProject(draft.project ?? user.defaultProject ?? '');
+        setProjectReportSlot(draft.projectReportSlot === 'upper' || draft.projectReportSlot === 'lower' ? draft.projectReportSlot : '');
         setWork(draft.work ?? ''); setHours(draft.hours ?? ''); setStartTime(draft.startTime ?? ''); setEndTime(draft.endTime ?? ''); setBreakMinutes(draft.breakMinutes ?? '0'); setKilometers(draft.kilometers ?? '');
         setFiles([]); setPosition(null);
         setDateWasEdited(Boolean(draft.dateWasEdited));
@@ -411,8 +412,8 @@ export default function Home() {
         setDraftReady(true);
     }, [user]);
     useEffect(() => { if (draftReady && user) {
-        try { localStorage.setItem(`worklog_draft:${ownerKey(user)}`, JSON.stringify({ company, project, work, hours, startTime, endTime, breakMinutes, kilometers, workDate: dateWasEdited ? workDate : '', dateWasEdited })); } catch {}
-    } }, [draftReady, user, company, project, work, hours, startTime, endTime, breakMinutes, kilometers, workDate, dateWasEdited]);
+        try { localStorage.setItem(`worklog_draft:${ownerKey(user)}`, JSON.stringify({ company, project, projectReportSlot, work, hours, startTime, endTime, breakMinutes, kilometers, workDate: dateWasEdited ? workDate : '', dateWasEdited })); } catch {}
+    } }, [draftReady, user, company, project, projectReportSlot, work, hours, startTime, endTime, breakMinutes, kilometers, workDate, dateWasEdited]);
 
     function syncProfile(value: User) { setFullName(value.fullName ?? '');
  setDefaultCompany(value.defaultCompany ?? '');
@@ -787,7 +788,6 @@ export default function Home() {
             setEndTime('');
             setBreakMinutes('0');
             setKilometers('');
-            setProjectReportSlot('');
 
             setNotice('Godziny zapisane');
 
@@ -934,7 +934,7 @@ export default function Home() {
  const [background] = await pdf.embedPdf(templateBytes, [0]);
  // Each row keeps its own destination. Manual upper/lower assignments are
  // separate lanes; automatic rows retain their independent legacy upper lane.
- const pages = buildReportPages(weekEntries.map(entry => ({ ...entry, workDate: effectiveWorkDate(entry) })), defaultCompany);
+ const pages = buildReportPages(weekEntries.map(entry => ({ ...entry, workDate: effectiveWorkDate(entry) })), { upper: reportMachineSettings.upperCompany || defaultCompany, lower: reportMachineSettings.lowerCompany || defaultCompany });
  const white = rgb(1, 1, 1), black = rgb(0, 0, 0);
  const fit = (value: string, max: number, size = 11) => { let s = size;
  while (s > 6 && font.widthOfTextAtSize(value, s) > max)

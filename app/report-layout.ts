@@ -16,12 +16,13 @@ export type ReportPage<T> = { upper?: T[]; lower?: T[] };
 
 const MAX_ROWS_PER_BLANK = 8;
 
+export type ReportCompanies = string | Partial<Record<'upper' | 'lower', string>>;
+
 function groupKey(entry: ReportLayoutEntry, fallbackCompany: string) {
-    const company = entry.company.trim() || fallbackCompany.trim();
-    // Keep entries without a client separated by site, as before.
-    return company
-        ? `company:${company.toLocaleLowerCase()}`
-        : `site:${entry.project.trim().toLocaleLowerCase() || ' '}`;
+    const company = (entry.company.trim() || fallbackCompany.trim()).normalize('NFKC').replace(/\s+/g, ' ').toLocaleLowerCase();
+    // A street is a row, never the identity of a report. Entries without a
+    // company still belong together in their explicitly selected form.
+    return `company:${company}`;
 }
 
 function entryOrder(a: ReportLayoutEntry, b: ReportLayoutEntry) {
@@ -33,7 +34,7 @@ function entryOrder(a: ReportLayoutEntry, b: ReportLayoutEntry) {
  * Same-client entries are kept together in the same lane, but a full blank
  * spills onto another page in that same lane rather than into its opposite.
  */
-export function buildReportPages<T extends ReportLayoutEntry>(entries: T[], fallbackCompany: string): ReportPage<T>[] {
+export function buildReportPages<T extends ReportLayoutEntry>(entries: T[], fallbackCompany: ReportCompanies): ReportPage<T>[] {
     const grouped = new Map<string, { slot: 'upper' | 'lower'; rows: T[] }>();
 
     for (const entry of entries) {
@@ -41,7 +42,8 @@ export function buildReportPages<T extends ReportLayoutEntry>(entries: T[], fall
         // Auto is deliberately independent of explicit choices. Historically,
         // an auto-only client was placed in the upper blank by the PDF builder.
         const slot: 'upper' | 'lower' = explicit ? entry.reportSlot as 'upper' | 'lower' : 'upper';
-        const key = `${slot}\u0000${groupKey(entry, fallbackCompany)}`;
+        const company = typeof fallbackCompany === 'string' ? fallbackCompany : fallbackCompany[slot] ?? '';
+        const key = `${slot}\u0000${groupKey(entry, company)}`;
         const group = grouped.get(key) ?? { slot, rows: [] };
         group.rows.push(entry);
         grouped.set(key, group);

@@ -1,3 +1,8 @@
+# 0.2.27
+
+- Zmiana ulicy nie tworzy osobnej karty raportu również wtedy, gdy nazwa firmy jest pusta. Brakująca firma korzysta z danych wybranego górnego lub dolnego blankietu.
+- Formularz zachowuje wybrany raport po zapisaniu wpisu i ponownym otwarciu aplikacji. Dopisanie innej ulicy pozostaje w tym samym raporcie, dopóki użytkownik sam go nie zmieni.
+
 # 0.2.26
 
 - Stałe dane górnego i dolnego raportu są wspólne dla wszystkich tygodni i pozostają do ręcznej zmiany. Przy pierwszym odczycie używane są ostatnio zapisane ustawienia, bez kasowania wcześniejszych danych.
