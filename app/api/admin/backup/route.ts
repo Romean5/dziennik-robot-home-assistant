@@ -30,7 +30,7 @@ function fromBase64(value: string) {
 
 async function payloadDigest(payload: BackupPayload) {
   const bytes = new TextEncoder().encode(JSON.stringify(payload));
-  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  const digest = await crypto.subtle.digest('SHA-256', new Uint8Array(bytes));
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
@@ -139,7 +139,7 @@ async function sameStoredPhoto(key: string, bytes: Uint8Array) {
   if (!object) return false;
   const current = new Uint8Array(await object.arrayBuffer());
   if (current.byteLength !== bytes.byteLength) return false;
-  const [left, right] = await Promise.all([crypto.subtle.digest('SHA-256', current), crypto.subtle.digest('SHA-256', bytes)]);
+  const [left, right] = await Promise.all([crypto.subtle.digest('SHA-256', current), crypto.subtle.digest('SHA-256', new Uint8Array(bytes))]);
   return [...new Uint8Array(left)].every((byte, index) => byte === new Uint8Array(right)[index]);
 }
 

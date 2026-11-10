@@ -47,7 +47,7 @@ function createZip(files: Array<{ name: string; data: Uint8Array }>) {
     const endView = new DataView(end.buffer);
     writeU32(endView, 0, 0x06054b50); writeU16(endView, 4, 0); writeU16(endView, 6, 0); writeU16(endView, 8, files.length); writeU16(endView, 10, files.length);
     writeU32(endView, 12, centralSize); writeU32(endView, 16, offset); writeU16(endView, 20, 0);
-    return new Blob([...localParts, ...centralParts, end], { type: 'application/zip' });
+    return new Blob([...localParts, ...centralParts, end].map(part => new Uint8Array(part)), { type: 'application/zip' });
 }
 
 function photoExtension(contentType: string) {

@@ -49,9 +49,9 @@ export default function PdfPreview({ blob, language }: Props) {
           canvas.height = Math.ceil(viewport.height * scale);
           canvas.style.width = `${Math.ceil(viewport.width)}px`;
           canvas.style.height = `${Math.ceil(viewport.height)}px`;
-          await page.render({ canvasContext: context, viewport, transform: [scale, 0, 0, scale, 0, 0] }).promise;
+          await page.render({ canvas, canvasContext: context, viewport, transform: [scale, 0, 0, scale, 0, 0] }).promise;
           if (cancelled) return;
-          root.append(canvas);
+          root.appendChild(canvas);
         }
         if (!cancelled) setReady(true);
       } catch {

@@ -25,14 +25,14 @@ async function loginAttemptKey(nameKey:string){const digest=await crypto.subtle.
 export async function loginRateLimit(nameKey:string,now=Date.now()){
   const attemptKey=await loginAttemptKey(nameKey);
   const row=await env.DB.prepare('SELECT failures,window_started_at AS windowStartedAt,blocked_until AS blockedUntil FROM login_attempts WHERE attempt_key=?').bind(attemptKey).first<{failures:number;windowStartedAt:number;blockedUntil:number}>();
-  if(row?.blockedUntil>now)return Math.ceil((row.blockedUntil-now)/1000);
+  if(row && row.blockedUntil>now)return Math.ceil((row.blockedUntil-now)/1000);
   return 0;
 }
 export async function recordFailedLogin(nameKey:string,now=Date.now()){
   const attemptKey=await loginAttemptKey(nameKey);
   await env.DB.prepare('INSERT INTO login_attempts(attempt_key,failures,window_started_at,blocked_until) VALUES(?,1,?,0) ON CONFLICT(attempt_key) DO UPDATE SET failures=CASE WHEN excluded.window_started_at-login_attempts.window_started_at>=? THEN 1 ELSE login_attempts.failures+1 END,window_started_at=CASE WHEN excluded.window_started_at-login_attempts.window_started_at>=? THEN excluded.window_started_at ELSE login_attempts.window_started_at END,blocked_until=CASE WHEN (CASE WHEN excluded.window_started_at-login_attempts.window_started_at>=? THEN 1 ELSE login_attempts.failures+1 END)>=? THEN excluded.window_started_at+? ELSE 0 END').bind(attemptKey,now,LOGIN_WINDOW_MS,LOGIN_WINDOW_MS,LOGIN_WINDOW_MS,LOGIN_FAILURE_LIMIT,LOGIN_WINDOW_MS).run();
   const row=await env.DB.prepare('SELECT blocked_until AS blockedUntil FROM login_attempts WHERE attempt_key=?').bind(attemptKey).first<{blockedUntil:number}>();
-  return row?.blockedUntil>now?Math.ceil((row.blockedUntil-now)/1000):0;
+  return row && row.blockedUntil>now?Math.ceil((row.blockedUntil-now)/1000):0;
 }
 export async function clearFailedLogins(nameKey:string){const attemptKey=await loginAttemptKey(nameKey);await env.DB.prepare('DELETE FROM login_attempts WHERE attempt_key=?').bind(attemptKey).run();}
 function hex(buffer:ArrayBuffer){return Array.from(new Uint8Array(buffer)).map(b=>b.toString(16).padStart(2,'0')).join('');}

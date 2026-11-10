@@ -1,3 +1,9 @@
+# 0.2.26
+
+- Stałe dane górnego i dolnego raportu są wspólne dla wszystkich tygodni i pozostają do ręcznej zmiany. Przy pierwszym odczycie używane są ostatnio zapisane ustawienia, bez kasowania wcześniejszych danych.
+- Poprawiono typy odpowiedzi API, obsługę brakującego rekordu blokady PIN-u oraz zgodność danych binarnych PDF i kopii zapasowych.
+- Dodano testy zachowania ustawień między tygodniami, blokady PIN-u i osobnych wierszy dla dwóch ulic tego samego dnia.
+
 # 0.2.25
 
 - „Wyślij zdjęcia” przekazuje teraz wszystkie fotografie bezpośrednio do wybranej aplikacji telefonu, np. WhatsAppa lub poczty — bez ZIP-a i bez rozpakowywania. ZIP pozostaje wyłącznie awaryjnie dla bardzo starych urządzeń, które nie obsługują wysłania wielu zdjęć naraz.

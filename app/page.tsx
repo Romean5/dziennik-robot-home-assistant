@@ -360,7 +360,8 @@ export default function Home() {
  return () => input?.removeEventListener('change', markDateAsEdited);
  }, [user]);
 
-    useEffect(() => { try { const savedLanguage = localStorage.getItem('dziennik-language'); if (savedLanguage === 'pl' || savedLanguage === 'da' || savedLanguage === 'en' || savedLanguage === 'lt') setLang(savedLanguage); } catch {} fetch('/api/session').then(r => { if (r.status === 401 || r.status === 403) { localStorage.removeItem('dziennik-offline-user'); return { user: null }; } if (!r.ok) throw new Error('offline'); return r.json(); }).then(d => { if (d?.user) {
+    useEffect(() => { try { const savedLanguage = localStorage.getItem('dziennik-language'); if (savedLanguage === 'pl' || savedLanguage === 'da' || savedLanguage === 'en' || savedLanguage === 'lt') setLang(savedLanguage); } catch {} fetch('/api/session').then(r => { if (r.status === 401 || r.status === 403) { localStorage.removeItem('dziennik-offline-user'); return { user: null }; } if (!r.ok) throw new Error('offline'); return r.json() as Promise<{ user: User | null }>; }).then(d => { if (d?.user) {
+        const authenticatedUser = d.user;
         activeUser.current = d.user;
         setUser(d.user);
         if (d.user.language) { setLang(d.user.language); localStorage.setItem('dziennik-language', d.user.language); }
@@ -370,7 +371,7 @@ export default function Home() {
 
         loadEntries(d.user);
         readDeviceEntries(d.user).then(setDeviceEntries).catch(() => {});
-        readPendingEntries().then(all => setPendingEntries(all.filter(item => ownsPending(item, d.user)))).catch(() => {});
+        readPendingEntries().then(all => setPendingEntries(all.filter(item => ownsPending(item, authenticatedUser)))).catch(() => {});
 
         loadProjects(d.user);
 
@@ -521,7 +522,7 @@ export default function Home() {
  if (r.status === 401 || r.status === 403) { if (value) localStorage.removeItem(ownerCacheKey('entries', value)); setEntries([]); return; }
  if (!r.ok) throw new Error('offline');
  if (r.ok) {
-        const d = await r.json(), rows = d.entries as Entry[], counts = rows.filter(e => e.entryType === 'timesheet').reduce<Record<string, number>>((all, e) => { const key = timesheetDuplicateKey(e); all[key] = (all[key] ?? 0) + 1;
+        const d = await r.json() as { entries: Entry[] }, rows = d.entries, counts = rows.filter(e => e.entryType === 'timesheet').reduce<Record<string, number>>((all, e) => { const key = timesheetDuplicateKey(e); all[key] = (all[key] ?? 0) + 1;
  return all;
  }, {});
 
@@ -536,7 +537,7 @@ export default function Home() {
  if (r.status === 401 || r.status === 403) { if (value) localStorage.removeItem(ownerCacheKey('projects', value)); setProjects([]); return; }
  if (!r.ok) throw new Error('offline');
  if (r.ok) {
-        const d = await r.json();
+        const d = await r.json() as { projects: Project[] };
 
         setProjects(d.projects); if (value) localStorage.setItem(ownerCacheKey('projects', value), JSON.stringify(d.projects));
 
@@ -584,7 +585,7 @@ export default function Home() {
                     if (response.status === 401 || response.status === 403) break;
                     continue;
                 }
-                const result = await response.json().catch(() => null);
+                const result = await response.json().catch(() => null) as { ok?: boolean; complete?: boolean } | null;
                 if (!result?.ok || result.complete === false) break;
                 await deletePendingEntry(item.id);
             } catch {
@@ -599,7 +600,7 @@ export default function Home() {
     }
     async function loadRequests() { const r = await fetch('/api/admin/requests');
  if (r.ok) {
-        const d = await r.json();
+        const d = await r.json() as { requests: JoinRequest[]; users?: JoinRequest[] };
 
         setRequests(d.requests); setTeamUsers(d.users ?? []);
 
@@ -611,7 +612,7 @@ export default function Home() {
         const accepted = window.confirm(lang === 'da' ? `Nulstil PIN for ${member.name}?` : lang === 'en' ? `Reset the PIN for ${member.name}?` : `Zresetować PIN użytkownika ${member.name}?`);
         if (!accepted) return;
         const response = await fetch('/api/admin/requests', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: member.id, action: 'resetPin' }) });
-        const result = await response.json().catch(() => ({}));
+        const result = await response.json().catch(() => ({})) as { temporaryPin?: string };
         if (!response.ok || !result.temporaryPin) { setNotice(lang === 'da' ? 'PIN kunne ikke nulstilles' : lang === 'en' ? 'Could not reset the PIN' : lang === 'lt' ? toLithuanian('Nie udało się zresetować PIN-u') : 'Nie udało się zresetować PIN-u'); return; }
         setTemporaryPin({ name: member.name, pin: result.temporaryPin });
     }
@@ -628,17 +629,18 @@ export default function Home() {
     }
     async function login() { setAuthError('');
  const r = await fetch('/api/auth', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, pin, language: lang }) });
- const d = await r.json().catch(() => ({}));
+ const d = await r.json().catch(() => ({})) as { user?: User; error?: string };
  if (r.status === 202) {
         setAuthError(t.pending);
 
         return;
 
-    } if (r.ok) {
-        activeUser.current = d.user;
+    } if (r.ok && d.user) {
+        const authenticatedUser = d.user;
+        activeUser.current = authenticatedUser;
         setUser(d.user);
         localStorage.setItem('dziennik-offline-user', JSON.stringify(d.user));
-        readPendingEntries().then(all => setPendingEntries(all.filter(item => ownsPending(item, d.user)))).catch(() => {});
+        readPendingEntries().then(all => setPendingEntries(all.filter(item => ownsPending(item, authenticatedUser)))).catch(() => {});
 
         syncProfile(d.user);
 
@@ -668,7 +670,7 @@ export default function Home() {
         return;
 
     } const r = await fetch('/api/pin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ pin: newPin }) });
- const result = await r.json().catch(() => ({}));
+ const result = await r.json().catch(() => ({})) as { error?: string };
  if (r.ok) {
         setNewPin('');
         if (user?.mustChangePin) {
@@ -760,7 +762,7 @@ export default function Home() {
     }
  const r = response;
  setSaving(false);
- const result = await r.json().catch(() => null);
+ const result = await r.json().catch(() => null) as { ok?: boolean; complete?: boolean } | null;
  if (r.ok && result?.complete === false) {
         setNotice(lang === 'da' ? 'Gemmer billeder — venter på serveren' : lang === 'en' ? 'Photos are still waiting for the server' : lang === 'lt' ? toLithuanian('Zdjęcia czekają na serwer') : 'Zdjęcia czekają na serwer');
         setTimeout(() => setNotice(''), 3500);
@@ -829,7 +831,7 @@ export default function Home() {
     useEffect(() => {
         if (!user?.id) return;
         let active = true;
-        const cacheKey = `dziennik-report-machines:${ownerKey(user)}:${reportWeekKey}`;
+        const cacheKey = `dziennik-report-machines:${ownerKey(user)}:permanent`;
         setReportSettingsDirty(false);
         setReportDirtySlots([]);
         setReportSettingsNotice('');
@@ -843,7 +845,7 @@ export default function Home() {
             if (cached && active) setReportMachineSettings({ ...fallback, ...cached });
         } catch {}
         fetch(`/api/report-settings?weekKey=${encodeURIComponent(reportWeekKey)}`, { cache: 'no-store' })
-            .then(response => { if (!response.ok) throw new Error('settings_unavailable'); return response.json(); })
+            .then(response => { if (!response.ok) throw new Error('settings_unavailable'); return response.json() as Promise<{ settings?: Partial<ReportMachineSettings> & { headerFieldsConfigured?: number | boolean } }>; })
             .then(data => {
                 if (!active || !data?.settings) return;
                 const serverSettings = data.settings as Partial<ReportMachineSettings> & { headerFieldsConfigured?: number | boolean };
@@ -855,11 +857,11 @@ export default function Home() {
                 try { localStorage.setItem(cacheKey, JSON.stringify(saved)); } catch {}
             }).catch(() => {});
         return () => { active = false; };
-    }, [user?.id, user?.machine, user?.machineNumber, reportWeekKey]);
+    }, [user?.id, user?.machine, user?.machineNumber]);
 
     async function saveReportMachineSettings() {
         if (!user?.id || !reportSettingsDirty || reportSettingsSaving) return;
-        const cacheKey = `dziennik-report-machines:${ownerKey(user)}:${reportWeekKey}`;
+        const cacheKey = `dziennik-report-machines:${ownerKey(user)}:permanent`;
         setReportSettingsSaving(true);
         setReportSettingsNotice('');
         try {
@@ -990,7 +992,7 @@ export default function Home() {
         else clearSlot(page, 372);
 
     } const bytes = await pdf.save();
- return new Blob([bytes], { type: 'application/pdf' });
+ return new Blob([new Uint8Array(bytes)], { type: 'application/pdf' });
  }
     async function previewExactPdf() { const mobile = window.matchMedia('(max-width:700px)').matches, tab = mobile ? window.open('about:blank', '_blank') : null;
    setNotice('Tworzę podgląd…');

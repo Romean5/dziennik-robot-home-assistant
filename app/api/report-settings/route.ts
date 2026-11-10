@@ -1,6 +1,7 @@
 import { env } from 'cloudflare:workers';
 import { currentUser, json } from '../_lib';
 
+const SETTINGS_KEY = 'permanent';
 const WEEK_KEY = /^\d{4}-W\d{2}$/;
 
 export async function GET(request: Request) {
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
         lower_full_name AS lowerFullName, lower_employee_number AS lowerEmployeeNumber,
         lower_machine AS lowerMachine, lower_machine_number AS lowerMachineNumber,
         header_fields_configured AS headerFieldsConfigured
-        FROM timesheet_report_settings WHERE user_id=? AND week_key=?`).bind(user.id, weekKey).first();
+        FROM timesheet_report_settings WHERE user_id=? ORDER BY (week_key=?) DESC, updated_at DESC, week_key DESC LIMIT 1`).bind(user.id, SETTINGS_KEY).first();
     return json({ settings: settings ?? null });
 }
 
@@ -40,17 +41,25 @@ export async function POST(request: Request) {
     const values = fields.map(field => String(body[field] ?? '').trim());
     if (values.some(value => value.length > 100)) return json({ error: 'value_too_long' }, 400);
 
+    // Seed permanent settings from the most recently saved legacy week. Never
+    // overwrite an existing permanent record, including deliberately empty fields.
+    const columns = ['upper_company', 'upper_project', 'upper_full_name', 'upper_employee_number', 'upper_machine', 'upper_machine_number',
+        'lower_company', 'lower_project', 'lower_full_name', 'lower_employee_number', 'lower_machine', 'lower_machine_number', 'header_fields_configured', 'updated_at'];
+    await env.DB.prepare(`INSERT OR IGNORE INTO timesheet_report_settings (user_id, week_key, ${columns.join(', ')})
+        SELECT user_id, ?, ${columns.join(', ')} FROM timesheet_report_settings
+        WHERE user_id=? ORDER BY updated_at DESC, week_key DESC LIMIT 1`).bind(SETTINGS_KEY, user.id).run();
+
     // Once the per-slot fields have been initialized, a save changes only the
     // selected blank's header. This protects the other report's independent data.
     const existing = await env.DB.prepare(`SELECT header_fields_configured AS configured
-        FROM timesheet_report_settings WHERE user_id=? AND week_key=?`).bind(user.id, weekKey).first<{ configured: number }>();
+        FROM timesheet_report_settings WHERE user_id=? AND week_key=?`).bind(user.id, SETTINGS_KEY).first<{ configured: number }>();
     if (slot && existing?.configured) {
         const offset = slot === 'upper' ? 0 : 6;
         const columns = slot === 'upper'
             ? ['upper_company', 'upper_project', 'upper_full_name', 'upper_employee_number', 'upper_machine', 'upper_machine_number']
             : ['lower_company', 'lower_project', 'lower_full_name', 'lower_employee_number', 'lower_machine', 'lower_machine_number'];
         await env.DB.prepare(`UPDATE timesheet_report_settings SET ${columns.map(column => `${column}=?`).join(', ')}, updated_at=? WHERE user_id=? AND week_key=?`)
-            .bind(...values.slice(offset, offset + 6), Date.now(), user.id, weekKey).run();
+            .bind(...values.slice(offset, offset + 6), Date.now(), user.id, SETTINGS_KEY).run();
         return json({ ok: true, weekKey, slot });
     }
 
@@ -66,7 +75,7 @@ export async function POST(request: Request) {
         lower_full_name=excluded.lower_full_name, lower_employee_number=excluded.lower_employee_number,
         lower_machine=excluded.lower_machine, lower_machine_number=excluded.lower_machine_number,
         header_fields_configured=1, updated_at=excluded.updated_at`)
-        .bind(user.id, weekKey, ...values, Date.now()).run();
+        .bind(user.id, SETTINGS_KEY, ...values, Date.now()).run();
 
     return json({ ok: true, weekKey });
 }
