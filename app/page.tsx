@@ -276,6 +276,12 @@ function mondayForIsoWeek(key: string) {
     return jan4;
 }
 
+function addCalendarDays(date: Date, days: number) {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+}
+
 function timesheetDuplicateKey(entry: Entry) {
     return [entry.workDate, entry.company.trim().toLocaleLowerCase(), entry.project.trim().toLocaleLowerCase(), entry.reportSlot || 'auto', entry.reportWeekKey || ''].join('\u0000');
 }
@@ -316,6 +322,15 @@ export default function Home() {
     const [reportSettingsSaving, setReportSettingsSaving] = useState(false);
     const [periodStartKey, setPeriodStartKey] = useState(() => isoWeekKey(new Date()));
     const [periodEndKey, setPeriodEndKey] = useState(() => isoWeekKey(new Date()));
+    const [calendarMonth, setCalendarMonth] = useState(() => new Date());
+    const [calendarRange, setCalendarRange] = useState(() => ({ first: isoWeekKey(new Date()), last: '', choosingEnd: false }));
+
+    function chooseCalendarWeek(key: string) {
+        setCalendarRange(range => range.choosingEnd
+            ? { first: range.first, last: key, choosingEnd: false }
+            : { first: key, last: '', choosingEnd: true });
+    }
+
     const reportHeaderFieldKeys = reportHeaderSlot === 'upper'
         ? { company: 'upperCompany', project: 'upperProject', fullName: 'upperFullName', employeeNumber: 'upperEmployeeNumber', machine: 'upperMachine', machineNumber: 'upperMachineNumber' } as const
         : { company: 'lowerCompany', project: 'lowerProject', fullName: 'lowerFullName', employeeNumber: 'lowerEmployeeNumber', machine: 'lowerMachine', machineNumber: 'lowerMachineNumber' } as const;
@@ -907,21 +922,15 @@ export default function Home() {
     const currentMonday = new Date();
     currentMonday.setHours(12, 0, 0, 0);
     currentMonday.setDate(currentMonday.getDate() - ((currentMonday.getDay() + 6) % 7));
-    const oldestTimesheetWeekKey = entries.filter(e => e.entryType === 'timesheet').map(entryReportWeekKey).sort()[0];
-    const firstMonday = oldestTimesheetWeekKey ? (mondayForIsoWeek(oldestTimesheetWeekKey) || new Date(currentMonday)) : new Date(currentMonday);
-    const elapsedUtcDays = (Date.UTC(currentMonday.getFullYear(), currentMonday.getMonth(), currentMonday.getDate()) - Date.UTC(firstMonday.getFullYear(), firstMonday.getMonth(), firstMonday.getDate())) / 86400000;
-    const periodWeekCount = Math.max(1, Math.floor(elapsedUtcDays / 7) + 1);
-    const periodWeekOptions = Array.from({ length: periodWeekCount }, (_, index) => {
-        const monday = new Date(firstMonday);
-        monday.setDate(monday.getDate() + index * 7);
-        const key = isoWeekKey(monday);
+    const [periodFirstKey, periodLastKey] = [periodStartKey, periodEndKey].sort();
+    const periodStartMonday = mondayForIsoWeek(periodFirstKey) ?? currentMonday;
+    const periodEndMonday = mondayForIsoWeek(periodLastKey) ?? currentMonday;
+    const periodWeekOptions = [];
+    for (let date = periodStartMonday; date <= periodEndMonday; date = addCalendarDays(date, 7)) {
+        const key = isoWeekKey(date);
         const [year, week] = key.split('-W');
-        return { key, label: `${lang === 'da' ? 'Uge' : lang === 'en' ? 'Week' : lang === 'lt' ? toLithuanian('Tydzień') : 'Tydzień'} ${week}, ${year}` };
-    });
-    const periodStartMonday = mondayForIsoWeek(periodStartKey) || currentMonday;
-    const periodEndMonday = mondayForIsoWeek(periodEndKey) || currentMonday;
-    const periodFirstKey = isoWeekKey(periodStartMonday <= periodEndMonday ? periodStartMonday : periodEndMonday);
-    const periodLastKey = isoWeekKey(periodStartMonday <= periodEndMonday ? periodEndMonday : periodStartMonday);
+        periodWeekOptions.push({ key, label: `${lang === 'da' ? 'Uge' : lang === 'en' ? 'Week' : lang === 'lt' ? 'Savaitė' : 'Tydzień'} ${week}, ${year}` });
+    }
     const periodEntries = entries.filter(e => {
         if (e.entryType !== 'timesheet') return false;
         const key = entryReportWeekKey(e);
@@ -934,6 +943,56 @@ export default function Home() {
         const weekRows = periodEntries.filter(e => entryReportWeekKey(e) === option.key);
         return { ...option, hours: weekRows.reduce((sum, e) => sum + (Number(e.hours) || 0), 0), km: weekRows.reduce((sum, e) => sum + (Number(e.kilometers) || 0), 0) };
     });
+    function renderPeriodCalendar() {
+        const labels = {
+            pl: { week: 'Tydz.', weekdays: ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'], previous: 'Poprzedni miesiąc', next: 'Następny miesiąc', first: 'Dotknij pierwszego tygodnia.', last: 'Dotknij ostatniego tygodnia lub pokaż zestawienie za jeden tydzień.', show: 'Pokaż zestawienie' },
+            da: { week: 'Uge', weekdays: ['Ma', 'Ti', 'On', 'To', 'Fr', 'Lø', 'Sø'], previous: 'Forrige måned', next: 'Næste måned', first: 'Vælg den første uge.', last: 'Vælg den sidste uge, eller vis én uge.', show: 'Vis oversigt' },
+            en: { week: 'Wk', weekdays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], previous: 'Previous month', next: 'Next month', first: 'Tap the first week.', last: 'Tap the last week or show a single week.', show: 'Show summary' },
+            lt: { week: 'Sav.', weekdays: ['Pr', 'An', 'Tr', 'Kt', 'Pn', 'Št', 'Sk'], previous: 'Ankstesnis mėnuo', next: 'Kitas mėnuo', first: 'Pasirinkite pirmą savaitę.', last: 'Pasirinkite paskutinę savaitę arba peržiūrėkite vieną savaitę.', show: 'Rodyti suvestinę' }
+        }[lang];
+        const locale = { pl: 'pl-PL', da: 'da-DK', en: 'en-GB', lt: 'lt-LT' }[lang];
+        const month = calendarMonth.getMonth();
+        const year = calendarMonth.getFullYear();
+        const firstOfMonth = new Date(year, month, 1, 12);
+        const firstMonday = addCalendarDays(firstOfMonth, -((firstOfMonth.getDay() + 6) % 7));
+        const nextMonth = new Date(year, month + 1, 1, 12);
+        const mondays = [];
+        for (let date = firstMonday; date < nextMonth; date = addCalendarDays(date, 7)) mondays.push(date);
+        const [firstKey, lastKey] = [calendarRange.first, calendarRange.last || calendarRange.first].sort();
+        const dateFormat = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+        const formatWeeks = (from: string, to: string) =>
+            dateFormat.formatRange(mondayForIsoWeek(from)!, addCalendarDays(mondayForIsoWeek(to)!, 6));
+
+        return <div className="period-calendar">
+            <div className="week-selector period-calendar-nav">
+                <button type="button" aria-label={labels.previous} onClick={() => setCalendarMonth(new Date(year, month - 1, 1, 12))}>‹</button>
+                <strong aria-live="polite">{firstOfMonth.toLocaleDateString(locale, { month: 'long', year: 'numeric' })}</strong>
+                <button type="button" aria-label={labels.next} onClick={() => setCalendarMonth(nextMonth)}>›</button>
+            </div>
+            <div className="period-calendar-row period-calendar-head"><span>{labels.week}</span>{labels.weekdays.map(day => <span key={day}>{day}</span>)}</div>
+            {mondays.map(date => {
+                const key = isoWeekKey(date);
+                const selected = key >= firstKey && key <= lastKey;
+                return <button type="button" key={key} className="period-calendar-row period-calendar-week" aria-pressed={selected}
+                    aria-label={`${labels.week} ${Number(key.slice(-2))}, ${formatWeeks(key, key)}`} onClick={() => chooseCalendarWeek(key)}>
+                    <strong>{Number(key.slice(-2))}</strong>
+                    {Array.from({ length: 7 }, (_, index) => addCalendarDays(date, index)).map(day =>
+                        <span key={day.getTime()} className={day.getMonth() === month ? undefined : 'outside-month'}>{day.getDate()}</span>
+                    )}
+                </button>;
+            })}
+            <p className="period-calendar-hint">{calendarRange.choosingEnd ? labels.last : labels.first}</p>
+            <strong className="period-calendar-range" aria-live="polite">{formatWeeks(firstKey, lastKey)}</strong>
+            <button type="button" className="secondary-button period-calendar-apply" onClick={() => {
+                setPeriodStartKey(firstKey);
+                setPeriodEndKey(lastKey);
+                setCalendarRange({ first: firstKey, last: lastKey, choosingEnd: false });
+            }}>{labels.show}</button>
+            {(firstKey !== periodFirstKey || lastKey !== periodLastKey) &&
+                <p className="period-calendar-hint">{formatWeeks(periodFirstKey, periodLastKey)}</p>}
+        </div>;
+    }
+
     const sharedEntries = [...entries.filter(e => e.entryType === 'worklog'), ...deviceEntries].filter(e => !sharedProject || e.project === sharedProject).filter(e => sharedScope === 'all' || e.author === user?.name).sort((a, b) => b.createdAt - a.createdAt);
 
     async function buildExactPdf() { if (!weekEntries.length)
@@ -1281,10 +1340,7 @@ export default function Home() {
 </section>
 <details className="period-summary">
 <summary>{lang === 'da' ? 'Oversigt for periode' : lang === 'en' ? 'Period summary' : lang === 'lt' ? toLithuanian('Zestawienie okresu') : 'Zestawienie okresu'}<span>⌄</span></summary>
-<div className="period-controls">
-<label className="field"><span>{lang === 'da' ? 'Fra uge' : lang === 'en' ? 'From week' : lang === 'lt' ? toLithuanian('Od tygodnia') : 'Od tygodnia'}</span><select value={periodStartKey} onChange={e => { const next = e.target.value; setPeriodStartKey(next); if (next > periodEndKey) setPeriodEndKey(next); }}>{periodWeekOptions.map(option => <option key={option.key} value={option.key}>{option.label}</option>)}</select></label>
-<label className="field"><span>{lang === 'da' ? 'Til uge' : lang === 'en' ? 'To week' : lang === 'lt' ? toLithuanian('Do tygodnia') : 'Do tygodnia'}</span><select value={periodEndKey} onChange={e => { const next = e.target.value; setPeriodEndKey(next); if (next < periodStartKey) setPeriodStartKey(next); }}>{periodWeekOptions.map(option => <option key={option.key} value={option.key}>{option.label}</option>)}</select></label>
-</div>
+{renderPeriodCalendar()}
 <p className="period-totals">{periodWeeks.length} {lang === 'da' ? 'uger' : lang === 'en' ? 'weeks' : lang === 'lt' ? toLithuanian('tyg.') : 'tyg.'} · {periodDays} {lang === 'da' ? 'arbejdsdage' : lang === 'en' ? 'workdays' : lang === 'lt' ? toLithuanian('dni pracy') : 'dni pracy'} · <strong>{periodHours} h</strong>{periodKm ? ` · ${periodKm} km` : ''}</p>
 {periodWeeks.length > 1 && <div className="period-week-list">{periodWeeks.map(week => <div key={week.key}><span>{week.label}</span><strong>{week.hours} h{week.km ? ` · ${week.km} km` : ''}</strong></div>)}</div>}
 {!periodEntries.length && <p className="period-empty">{lang === 'da' ? 'Ingen registrerede timer i denne periode.' : lang === 'en' ? 'No hours recorded for this period.' : lang === 'lt' ? toLithuanian('Brak zapisanych godzin w tym okresie.') : 'Brak zapisanych godzin w tym okresie.'}</p>}

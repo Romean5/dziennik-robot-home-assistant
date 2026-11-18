@@ -1,3 +1,7 @@
+# 0.2.30
+
+- Zestawienie okresu ma kalendarz miesięczny z numerami tygodni i wyborem zakresu między miesiącami.
+
 # 0.2.29
 
 - Karta pracy i raport tygodniowy otwieraja sie na aktualnym tygodniu. Wybor strzalkami obowiazuje do zmiany ekranu.
