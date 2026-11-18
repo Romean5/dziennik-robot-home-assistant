@@ -1,3 +1,8 @@
+# 0.2.29
+
+- Karta pracy i raport tygodniowy otwieraja sie na aktualnym tygodniu. Wybor strzalkami obowiazuje do zmiany ekranu.
+- Puste rubryki kilometrow nie pokazuja zera w raporcie.
+
 # 0.2.28
 
 - Raport PDF pokazuje obok ulicy zapisane godziny rozpoczęcia i zakończenia.
