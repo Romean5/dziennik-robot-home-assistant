@@ -1,3 +1,8 @@
+# 0.2.28
+
+- Raport PDF pokazuje obok ulicy zapisane godziny rozpoczęcia i zakończenia.
+- Strzałki nad datą w karcie pracy pozwalają wybrać tydzień raportowy niezależnie od daty pracy.
+
 # 0.2.27
 
 - Zmiana ulicy nie tworzy osobnej karty raportu również wtedy, gdy nazwa firmy jest pusta. Brakująca firma korzysta z danych wybranego górnego lub dolnego blankietu.

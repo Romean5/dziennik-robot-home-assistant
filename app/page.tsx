@@ -529,7 +529,7 @@ export default function Home() {
 
         const normalized = rows.map(e => { const createdDate = new Date(e.createdAt), created = Number.isFinite(createdDate.getTime()) ? new Date(createdDate.getTime() - createdDate.getTimezoneOffset() * 60000).toISOString().slice(0, 10) : e.workDate;
  const daysApart = Math.round((new Date(created + 'T12:00:00').getTime() - new Date(e.workDate + 'T12:00:00').getTime()) / 86400000);
- return e.entryType === 'timesheet' && counts[timesheetDuplicateKey(e)] > 1 && daysApart > 0 && daysApart <= 7 ? { ...e, workDate: created } : e;
+ return e.entryType === 'timesheet' && !e.reportWeekKey && counts[timesheetDuplicateKey(e)] > 1 && daysApart > 0 && daysApart <= 7 ? { ...e, workDate: created } : e;
  }); setEntries(normalized); if (value) localStorage.setItem(ownerCacheKey('entries', value), JSON.stringify(normalized));
 
     } } catch { if (!value || !activeUser.current || ownerKey(value) !== ownerKey(activeUser.current)) return; try { const cached = value ? JSON.parse(localStorage.getItem(ownerCacheKey('entries', value)) || '[]') : []; if (Array.isArray(cached)) setEntries(cached); } catch {} } }
@@ -812,7 +812,9 @@ export default function Home() {
         setNotice(lang === 'da' ? 'Kunne ikke gemme registreringen' : lang === 'en' ? 'The entry could not be saved' : lang === 'lt' ? toLithuanian('Nie udało się zapisać wpisu') : 'Nie udało się zapisać wpisu');
         setTimeout(() => setNotice(''), 3500);
     } }
-    const effectiveWorkDate = (entry: Entry) => { const createdDate = new Date(entry.createdAt);
+    const effectiveWorkDate = (entry: Entry) => {
+ if (entry.reportWeekKey) return entry.workDate;
+ const createdDate = new Date(entry.createdAt);
  const created = Number.isFinite(createdDate.getTime()) ? new Date(createdDate.getTime() - createdDate.getTimezoneOffset() * 60000).toISOString().slice(0, 10) : entry.workDate;
  const duplicated = entries.some(other => other.id !== entry.id && other.entryType === 'timesheet' && timesheetDuplicateKey(other) === timesheetDuplicateKey(entry));
  return duplicated && created > entry.workDate ? created : entry.workDate;
@@ -884,11 +886,16 @@ export default function Home() {
  return entryReportWeekKey(e) === reportWeekKey;
  }).sort((a, b) => effectiveWorkDate(a).localeCompare(effectiveWorkDate(b)));
 
-    const weekNumber = (() => { const d = new Date(Date.UTC(monday.getFullYear(), monday.getMonth(), monday.getDate()));
- d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
- const y = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
- return Math.ceil((((d.getTime() - y.getTime()) / 86400000) + 1) / 7);
- })();
+    const [reportYear, reportWeek] = reportWeekKey.split('-W');
+    const weekNumber = Number(reportWeek);
+    const weekLabel = `${lang === 'da' ? 'Uge' : lang === 'en' ? 'Week' : lang === 'lt' ? toLithuanian('Tydzień') : 'Tydzień'} ${weekNumber}, ${reportYear}`;
+    const weekSelector = (
+        <div className="week-selector">
+            <button type="button" onClick={() => setWeekOffset(offset => offset - 1)} aria-label={lang === 'da' ? 'Forrige uge' : lang === 'en' ? 'Previous week' : lang === 'lt' ? toLithuanian('Poprzedni tydzień') : 'Poprzedni tydzień'}>‹</button>
+            <strong aria-live="polite">{weekLabel}</strong>
+            <button type="button" onClick={() => setWeekOffset(offset => offset + 1)} aria-label={lang === 'da' ? 'Næste uge' : lang === 'en' ? 'Next week' : lang === 'lt' ? toLithuanian('Następny tydzień') : 'Następny tydzień'}>›</button>
+        </div>
+    );
 
     const totalHours = weekEntries.reduce((s, e) => s + (Number(e.hours) || 0), 0), totalKm = weekEntries.reduce((s, e) => s + (Number(e.kilometers) || 0), 0);
     const currentMonday = new Date();
@@ -928,7 +935,7 @@ export default function Home() {
  const [templateBytes, fontBytes] = await Promise.all([fetch('/timeregistrering-clean.pdf').then(r => r.arrayBuffer()), fetch('/DejaVuSans.ttf').then(r => r.arrayBuffer())]);
  const pdf = await PDFDocument.create();
  pdf.setTitle(`TIMEREGISTRERING - uge ${weekNumber}`);
- pdf.setSubject(`Uge ${weekNumber}, ${monday.getFullYear()}`);
+ pdf.setSubject(`Uge ${weekNumber}, ${reportYear}`);
  pdf.registerFontkit(fontkit);
  const font = await pdf.embedFont(fontBytes, { subset: true });
  const [background] = await pdf.embedPdf(templateBytes, [0]);
@@ -969,7 +976,17 @@ export default function Home() {
  rows.slice(0, 8).forEach((e, i) => { const y = 684 - offset - i * 22, d = new Date(effectiveWorkDate(e) + 'T12:00:00');
  centered(page, d.toLocaleDateString('da-DK', { day: '2-digit', month: '2-digit' }), 18, 70, y - 2 - textDrop, 9);
  centered(page, `${d.getFullYear()} r.`, 18, 70, y - 10 - textDrop, 7);
- text(page, e.project, 76, y - textDrop, 289, 11);
+ const timeRange = e.startTime && e.endTime ? ` (${e.startTime}–${e.endTime})` : '';
+ const streetWidth = 289;
+ let street = e.project;
+ if (timeRange && font.widthOfTextAtSize(street + timeRange, 8) > streetWidth) {
+     const characters = Array.from(street);
+     while (characters.length && font.widthOfTextAtSize(characters.join('') + '…' + timeRange, 8) > streetWidth) {
+         characters.pop();
+     }
+     street = characters.join('').trimEnd() + '…';
+ }
+ text(page, street + timeRange, 76, y - textDrop, streetWidth, 11);
  centered(page, e.hours, 381, 425, y - 1 - textDrop, 11);
  centered(page, e.kilometers, 425, 468, y - 1 - textDrop, 11);
  });
@@ -1200,6 +1217,7 @@ export default function Home() {
 </details>
     <section className="form-section">
 <h3>{lang === 'da' ? 'Tidsregistrering' : lang === 'en' ? 'Time registration' : lang === 'lt' ? toLithuanian('Ewidencja godzin') : 'Ewidencja godzin'}</h3>
+{weekSelector}
 <div className="compact-grid">
 <label className="field">
 <span>{lang === 'da' ? 'Dato' : lang === 'en' ? 'Date' : lang === 'lt' ? toLithuanian('Data') : 'Data'}</span>
@@ -1245,11 +1263,7 @@ export default function Home() {
 <summary>{lang === 'da' ? 'Ugerapport' : lang === 'en' ? 'Weekly report' : lang === 'lt' ? toLithuanian('Raport tygodniowy') : 'Raport tygodniowy'} · {weekNumber}<span>⌄</span></summary>
     <section className="report-card">
 <div>
-<div className="week-selector">
-<button onClick={() => setWeekOffset(x => x - 1)} aria-label={lang === 'da' ? 'Forrige uge' : lang === 'en' ? 'Previous week' : lang === 'lt' ? toLithuanian('Poprzedni tydzień') : 'Poprzedni tydzień'}>‹</button>
-<h2>{lang === 'da' ? 'Ugerapport' : lang === 'en' ? 'Weekly report' : lang === 'lt' ? toLithuanian('Raport tygodniowy') : 'Raport tygodniowy'} · {weekNumber}</h2>
-<button onClick={() => setWeekOffset(x => Math.min(0, x + 1))} disabled={weekOffset >= 0} aria-label={lang === 'da' ? 'Næste uge' : lang === 'en' ? 'Next week' : lang === 'lt' ? toLithuanian('Następny tydzień') : 'Następny tydzień'}>›</button>
-</div>
+{weekSelector}
 <p>{weekEntries.length} {lang === 'da' ? 'dage' : lang === 'en' ? 'days' : lang === 'lt' ? toLithuanian('dni') : 'dni'} · {totalHours} h · {totalKm} km</p>
 <div className="timesheet-entry-list">{weekEntries.map(e => <div className="timesheet-entry-row" key={e.id}><span><strong>{effectiveWorkDate(e)}</strong> · {e.project} · {e.hours || '0'} h{timeSummary(e, lang) ? ` (${timeSummary(e, lang)})` : ''} · {e.kilometers || '0'} km · {e.reportSlot === 'upper' ? (lang === 'da' ? 'Øverste rapport' : lang === 'en' ? 'Upper report' : lang === 'lt' ? toLithuanian('Górny raport') : 'Górny raport') : e.reportSlot === 'lower' ? (lang === 'da' ? 'Nederste rapport' : lang === 'en' ? 'Lower report' : lang === 'lt' ? toLithuanian('Dolny raport') : 'Dolny raport') : (lang === 'da' ? 'Automatisk' : lang === 'en' ? 'Automatic' : lang === 'lt' ? toLithuanian('Automatycznie') : 'Automatycznie')}</span><button className="table-delete" onClick={() => deleteEntry(e)}>{lang === 'da' ? 'Slet' : lang === 'en' ? 'Delete' : lang === 'lt' ? toLithuanian('Usuń') : 'Usuń'}</button></div>)}</div>
 </div>
