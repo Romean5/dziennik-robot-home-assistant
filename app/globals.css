@@ -139,10 +139,13 @@ button,label { -webkit-tap-highlight-color:transparent; }
 .period-calendar-nav button { width:44px; height:44px; }
 .period-calendar-row { display:grid; grid-template-columns:1.35fr repeat(7,minmax(0,1fr)); align-items:center; width:100%; text-align:center; gap:1px; }
 .period-calendar-head { font-size:.73rem; font-weight:750; padding:8px 0; }
-.period-calendar-week { min-height:44px; padding:0; color:var(--green-dark); background:white; border:0; border-top:1px solid var(--line); font:inherit; font-variant-numeric:tabular-nums; cursor:pointer; }
-.period-calendar-week[aria-pressed="true"] { background:#d8f1dd; border-radius:8px; }
-.period-calendar-week[aria-pressed="true"] strong { background:var(--green-dark); color:white; border-radius:7px; margin:4px; padding:3px 0; }
-.period-calendar-week .outside-month { color:var(--muted); opacity:.75; }
+.period-calendar-day { min-height:44px; padding:0; color:var(--green-dark); background:white; border:0; border-radius:7px; font:inherit; font-variant-numeric:tabular-nums; cursor:pointer; }
+.period-calendar-day[aria-pressed="true"] { background:#d8f1dd; }
+.period-calendar-day.range-endpoint { background:var(--green-dark); color:white; font-weight:800; }
+.period-calendar-day.outside-month:not(.range-endpoint) { color:var(--muted); }
+.period-calendar-day[aria-current="date"] { box-shadow:inset 0 0 0 2px var(--green); }
+.period-calendar-week-number { font-size:.8rem; color:var(--muted); }
+.period-calendar-day:focus-visible { outline:2px solid var(--green); outline-offset:-2px; }
 .period-calendar-hint { font-size:.83rem; }
 .period-calendar-range { display:block; margin-top:8px; color:var(--green-dark); }
 .period-calendar-apply { width:100%; }

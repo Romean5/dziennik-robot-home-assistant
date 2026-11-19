@@ -1,3 +1,8 @@
+# 0.2.31
+
+- Kalendarz zestawienia pozwala wybrać konkretne daty od–do. Godziny liczone są według dat pracy, włącznie z oboma dniami granicznymi.
+- Wybrany zakres i miesiąc są zapamiętywane na urządzeniu osobno dla każdego konta po wyświetleniu zestawienia.
+
 # 0.2.30
 
 - Zestawienie okresu ma kalendarz miesięczny z numerami tygodni i wyborem zakresu między miesiącami.
