@@ -1,3 +1,7 @@
+# 0.2.32
+
+- Do własnego zapisanego wpisu można wielokrotnie dodawać kolejne zdjęcia przyciskiem Dodaj zdjęcia. Ponowienie po błędzie połączenia zachowuje pojedynczą kopię zdjęcia.
+
 # 0.2.31
 
 - Kalendarz zestawienia pozwala wybrać konkretne daty od–do. Godziny liczone są według dat pracy, włącznie z oboma dniami granicznymi.

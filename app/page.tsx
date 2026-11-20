@@ -1132,6 +1132,31 @@ export default function Home() {
             setNotice(lang === 'da' ? 'Kunne ikke slette.' : lang === 'en' ? 'Could not delete.' : lang === 'lt' ? toLithuanian('Nie udało się usunąć.') : 'Nie udało się usunąć.');
         }
     }
+    async function addEntryPhoto(entry: Entry, file: File, uploadId: string) {
+        if (!user || !activeUser.current || ownerKey(user) !== ownerKey(activeUser.current)) throw new Error('Account changed');
+        if ('storage' in entry) {
+            const current = (await readDeviceEntries(user)).find(item => item.id === entry.id);
+            if (!current) throw new Error('Entry missing');
+            const photos = [...current.photos, file];
+            const updated = { ...current, photos, photoCount: photos.length };
+            await writeDeviceEntry(updated);
+            setDeviceEntries(all => all.map(item => item.id === entry.id ? updated : item));
+            return;
+        }
+        const form = new FormData();
+        form.set('photo', file);
+        form.set('uploadId', uploadId);
+        const response = await fetch(`/api/entries/${encodeURIComponent(entry.id)}/photos`, {
+            method: 'POST', body: form, signal: AbortSignal.timeout(60000)
+        });
+        if (!response.ok) throw new Error('Photo upload failed');
+        const result = await response.json() as { ok?: boolean; photoCount?: number };
+        if (!result.ok || typeof result.photoCount !== 'number') throw new Error('Invalid upload response');
+        if (!activeUser.current || ownerKey(user) !== ownerKey(activeUser.current)) throw new Error('Account changed');
+        const photoCount = result.photoCount;
+        setEntries(all => all.map(item => item.id === entry.id ? { ...item, photoCount } : item));
+    }
+
     async function deleteEntryPhoto(entry: Entry, photoId: string, photoIndex: number): Promise<boolean> {
         try {
             if ('storage' in entry) {
@@ -1457,7 +1482,7 @@ export default function Home() {
 <button className="secondary-button" onClick={() => translateEntry(e)} disabled={Boolean(translatingEntries[e.id])}>{translatingEntries[e.id] ? (lang === 'da' ? 'Oversætter…' : lang === 'en' ? 'Translating…' : lang === 'lt' ? toLithuanian('Tłumaczę…') : 'Tłumaczę…') : entryTranslations[e.id] ? (lang === 'da' ? 'Vis original' : lang === 'en' ? 'Show original' : lang === 'lt' ? toLithuanian('Pokaż oryginał') : 'Pokaż oryginał') : (lang === 'da' ? 'Oversæt til engelsk' : lang === 'en' ? 'Translate to English' : lang === 'lt' ? toLithuanian('Przetłumacz na angielski') : 'Przetłumacz na angielski')}</button>
 {translationErrors[e.id] && <small role="status">{lang === 'da' ? 'Oversættelse er ikke tilgængelig. Originalen vises.' : lang === 'en' ? 'Translation unavailable. Showing original.' : lang === 'lt' ? toLithuanian('Tłumaczenie niedostępne. Pokazuję oryginał.') : 'Tłumaczenie niedostępne. Pokazuję oryginał.'}</small>}
 </div>}
-<EntryPhotos entryId={e.id} count={e.photoCount} language={lang} files={'storage' in e ? (e as DeviceEntry).photos : pendingEntries.find(item => item.id === e.id)?.files} canDelete={('storage' in e && (e as DeviceEntry).owner === (user ? ownerKey(user) : '')) || e.author === user?.name} onDeletePhoto={(photoId, index) => deleteEntryPhoto(e, photoId, index)} />
+<EntryPhotos entryId={e.id} count={e.photoCount} language={lang} files={'storage' in e ? (e as DeviceEntry).photos : pendingEntries.find(item => item.id === e.id)?.files} canDelete={('storage' in e && (e as DeviceEntry).owner === (user ? ownerKey(user) : '')) || e.author === user?.name} canAdd={!e.pending && (('storage' in e && (e as DeviceEntry).owner === (user ? ownerKey(user) : '')) || e.author === user?.name)} onAddPhoto={(file, uploadId) => addEntryPhoto(e, file, uploadId)} onDeletePhoto={(photoId, index) => deleteEntryPhoto(e, photoId, index)} />
 <small>{'storage' in e ? (lang === 'da' ? 'Kun denne telefon · ' : lang === 'en' ? 'This device only · ' : lang === 'lt' ? toLithuanian('Tylko ten telefon · ') : 'Tylko ten telefon · ') : ''}📷 {e.photoCount} {t.photos} · {e.latitude ? `⌖ ${t.gpsReady}` : t.gpsMissing}</small>
 </article>)}</div>}</section>}
 {activePanel === 'settings' && <details className="pin-card no-print" open>

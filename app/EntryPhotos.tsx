@@ -57,17 +57,50 @@ function photoExtension(contentType: string) {
     return '.jpg';
 }
 
-export default function EntryPhotos({ entryId, count, files, language, canDelete = false, onDeletePhoto }: {
+export default function EntryPhotos({ entryId, count, files, language, canDelete = false, onDeletePhoto, canAdd = false, onAddPhoto }: {
     entryId: string;
     count: number;
     files?: File[];
     language: 'pl' | 'da' | 'en' | 'lt';
     canDelete?: boolean;
     onDeletePhoto?: (photoId: string, index: number) => Promise<boolean>;
+    canAdd?: boolean;
+    onAddPhoto?: (file: File, uploadId: string) => Promise<void>;
 }) {
     const dialog = useRef<HTMLDialogElement>(null);
     const objectUrls = useRef(new Set<string>());
     const [photos, setPhotos] = useState<PhotoView[]>([]);
+    const photoInput = useRef<HTMLInputElement>(null);
+    const uploadBusy = useRef(false);
+    const [uploads, setUploads] = useState<{ file: File; id: string }[]>([]);
+    const [uploading, setUploading] = useState(false);
+    const [uploadFailed, setUploadFailed] = useState(false);
+    const addLabels = {
+        pl: { choose: 'Wybierz inne zdjęcia', add: 'Dodaj zdjęcia', busy: 'Dodaję zdjęcia…', retry: 'Ponów dodawanie', failed: 'Nie udało się dodać wszystkich zdjęć. Naciśnij „Ponów dodawanie”.' },
+        da: { choose: 'Vælg andre billeder', add: 'Tilføj billeder', busy: 'Tilføjer billeder…', retry: 'Prøv igen', failed: 'Ikke alle billeder blev tilføjet. Prøv igen.' },
+        en: { choose: 'Choose other photos', add: 'Add photos', busy: 'Adding photos…', retry: 'Retry upload', failed: 'Some photos could not be added. Retry the upload.' },
+        lt: { choose: 'Pasirinkti kitas nuotraukas', add: 'Pridėti nuotraukų', busy: 'Pridedamos nuotraukos…', retry: 'Bandyti dar kartą', failed: 'Nepavyko pridėti visų nuotraukų. Bandykite dar kartą.' }
+    }[language];
+
+    async function uploadPhotos(queue: { file: File; id: string }[]) {
+        if (!onAddPhoto || uploadBusy.current) return;
+        uploadBusy.current = true;
+        setUploading(true);
+        setUploadFailed(false);
+        try {
+            for (const upload of queue) {
+                await onAddPhoto(upload.file, upload.id);
+                setUploads(current => current.filter(item => item.id !== upload.id));
+                setPhotos([]);
+            }
+        } catch {
+            setUploadFailed(true);
+        } finally {
+            uploadBusy.current = false;
+            setUploading(false);
+        }
+    }
+
     const [selected, setSelected] = useState(0);
     const [loading, setLoading] = useState(false);
     const [deleting, setDeleting] = useState(false);
@@ -153,10 +186,33 @@ export default function EntryPhotos({ entryId, count, files, language, canDelete
         } catch { setError(true); } finally { setDeleting(false); }
     }
 
-    if (!count) return null;
+    if (!count && !canAdd) return null;
     return <>
-        <button className="photo-open" type="button" onClick={open}>📷 {labels.open} ({count})</button>
-        <button className="photo-share" type="button" disabled={sharing} onClick={sharePhotos}>📦 {sharing ? labels.sharing : labels.share} ({count})</button>
+        {count > 0 && <>
+            <button className="photo-open" type="button" disabled={uploading} onClick={open}>📷 {labels.open} ({count})</button>
+            <button className="photo-share" type="button" disabled={sharing || uploading} onClick={sharePhotos}>📦 {sharing ? labels.sharing : labels.share} ({count})</button>
+        </>}
+        {canAdd && onAddPhoto && <>
+            <input ref={photoInput} type="file" accept="image/*" multiple hidden onChange={event => {
+                const queue = Array.from(event.target.files ?? []).map(file => ({ file, id: crypto.randomUUID() }));
+                event.target.value = '';
+                if (!queue.length || uploadBusy.current) return;
+                setUploads(queue);
+                void uploadPhotos(queue);
+            }}/>
+            <button className="photo-open" type="button" disabled={uploading || sharing || deleting} onClick={() => {
+                if (uploads.length) void uploadPhotos(uploads);
+                else photoInput.current?.click();
+            }}>{uploading ? addLabels.busy : uploads.length ? addLabels.retry : addLabels.add}</button>
+            {uploadFailed && <>
+                <small role="alert">{addLabels.failed}</small>
+                <button className="photo-open" type="button" onClick={() => {
+                    setUploads([]);
+                    setUploadFailed(false);
+                    photoInput.current?.click();
+                }}>{addLabels.choose}</button>
+            </>}
+        </>}
         {shareMessage && <small className="photo-share-status" role="status">{shareMessage}</small>}
         <dialog className="photo-dialog" ref={dialog} aria-label={labels.open} onClick={event => { if (event.target === dialog.current) dialog.current.close(); }}>
             <div className="photo-toolbar"><strong>{labels.photo}{photos.length ? ` ${selected + 1} / ${photos.length}` : ''}</strong><button type="button" onClick={() => dialog.current?.close()}>{labels.close} ✕</button></div>

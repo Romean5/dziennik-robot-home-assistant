@@ -1,4 +1,4 @@
-const CACHE = 'dziennik-robot-shell-v10';
+const CACHE = 'dziennik-robot-shell-v11';
 const cacheable = response => response.ok && response.type !== 'opaque';
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
